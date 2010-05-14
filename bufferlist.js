@@ -35,7 +35,7 @@ function BufferList() {
         });
     };
     
-    // Create a single buffer out of all the chunks.
+    // Create a single Buffer out of all the chunks.
     this.join = function () {
         if (!head.buffer) return new this.constructor(0);
         
