@@ -26,9 +26,10 @@ function BufferList(opts) {
     var offset = 0;
     
     // Push buffers to the end of the linked list.
+    // Return this (self).
     this.push = function () {
         Array.prototype.slice.call(arguments).forEach(function (buf) {
-            if (head.buffer == null) {
+            if (!head.buffer) {
                 head.buffer = buf;
                 last = head;
             }
@@ -37,8 +38,29 @@ function BufferList(opts) {
                 last = last.next;
             }
             length += buf.length;
-            return this;
         });
+        return this;
+    };
+    
+    // For each buffer, perform some action.
+    // If fn's result is a true value, cut out early.
+    // Returns this (self).
+    this.forEach = function (fn) {
+        if (!head.buffer) return new this.construct(0);
+        
+        if (head.buffer.length - offset <= 0) return this;
+        var firstBuf = new this.construct(head.buffer.length - offset);
+        head.buffer.copy(firstBuf, 0, offset, head.buffer.length);
+        
+        var b = { buffer : firstBuf, next : head.next };
+        
+        while (b && b.buffer) {
+            var r = fn(b.buffer);
+            if (r) break;
+            b = b.next;
+        }
+        
+        return this;
     };
     
     // Create a single Buffer out of all the chunks.
@@ -65,13 +87,18 @@ function BufferList(opts) {
     // If n the aggregate advance offset passes the end of the buffer list,
     // operations such as .take() will return empty strings until enough data is
     // pushed.
+    // Returns this (self).
     this.advance = function (n) {
         offset += n;
         length -= n;
-        while (head.buffer && head.next && offset >= head.buffer.length) {
+        while (head.buffer && offset >= head.buffer.length) {
             offset -= head.buffer.length;
-            head = head.next;
+            head = head.next
+                ? head.next
+                : { buffer : null, next : null }
+            ;
         }
+        return this;
     };
     
     // Take n bytes from the start of the buffers.
@@ -81,14 +108,14 @@ function BufferList(opts) {
     this.take = function (n) {
         var b = head;
         var acc = '';
-        n -= offset;
-        while (b && b.buffer && n > 0) {
-            acc += b.buffer.toString(
-                this.encoding, 0, Math.min(n,b.buffer.length)
+        var encoding = this.encoding;
+        this.forEach(function (buffer) {
+            if (n < 0) return true;
+            acc += buffer.toString(
+                encoding, 0, Math.min(n,buffer.length)
             );
-            n -= b.buffer.length;
-            b = b.next;
-        }
+            n -= buffer.length;
+        });
         return acc;
     };
 };
