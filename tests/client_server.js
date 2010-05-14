@@ -1,11 +1,9 @@
 #!/usr/bin/env node
 // Test a client/server interaction
+// If nothing gets printed, everything is fine.
 
-var sys = require('sys')
-function assert (name, eq) {
-    sys.print(name + ' ... ');
-    sys.puts(eq ? 'ok' : 'fail');
-}
+var sys = require('sys');
+var assert = require('assert');
 
 var net = require('net');
 var client = new net.Stream;
@@ -18,13 +16,13 @@ client.addListener('data', function (data) {
     bufs.push(data);
     elems.push(data);
     
-    assert('take first 3 bytes', bufs.take(3) == elems[0]);
-    assert('take past length of buffer', bufs.take(100) == elems.join(''));
+    assert.equal(bufs.take(3), elems[0], 'take first 3 bytes');
+    assert.equal(bufs.take(100), elems.join(''), 'take past length of buffer');
 });
 
 client.addListener('end', function (data) {
-    assert('verify length', bufs.length == elems.join('').length);
-    assert('take to the end', bufs.take(bufs.length) == elems.join(''));
+    assert.equal(bufs.length, elems.join('').length, 'verify length');
+    assert.equal(bufs.take(bufs.length), elems.join(''), 'take to the end');
     client.end();
 });
 
