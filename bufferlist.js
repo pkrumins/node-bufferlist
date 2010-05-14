@@ -6,10 +6,11 @@ function BufferList(opts) {
     if (typeof(opts) == 'undefined') opts = {}
     
     // default encoding to use for take()
-    this.encoding = opts.encoding || 'binary';
+    this.encoding = opts.encoding;
+    if (!this.encoding) this.encoding = 'binary';
     
     // constructor to use for Buffer-esque operations
-    this.constructor = opts.constructor || Buffer;
+    this.construct = opts.construct || Buffer;
     
     var head = { next : null, buffer : null };
     var last = { next : null, buffer : null };
@@ -42,10 +43,10 @@ function BufferList(opts) {
     
     // Create a single Buffer out of all the chunks.
     this.join = function () {
-        if (!head.buffer) return new this.constructor(0);
+        if (!head.buffer) return new this.construct(0);
         
-        var big = new this.constructor(this.length);
-        var firstBuf = new this.constructor(head.buffer.length - offset);
+        var big = new this.construct(this.length);
+        var firstBuf = new this.construct(head.buffer.length - offset);
         head.buffer.copy(firstBuf, 0, offset, head.buffer.length);
         
         var b = { buffer : firstBuf, next : head.next };

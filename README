@@ -18,7 +18,7 @@ Buffer objects don't need to be buffer objects necessarily, but they should
 implement methods that act like Buffer's toString, length, and copy.
 
 To use a different kind of buffer object, set the constructor property:
-    var b = new BufferList({ constructor : Bluffer });
+    var b = new BufferList({ construct : Bluffer });
     
     var b = new BufferList;
-    b.constructor = Buffur;
+    b.construct = Buffur;
