@@ -9,7 +9,7 @@ function BufferList(opts) {
     this.encoding = opts.encoding || 'binary';
     
     // constructor to use for Buffer-esque operations
-    this.constructor = opts.encoding || Buffer;
+    this.constructor = opts.constructor || Buffer;
     
     var head = { next : null, buffer : null };
     var last = { next : null, buffer : null };
