@@ -1,8 +1,10 @@
-// buffer_list.js
+// bufferlist.js
 // Treat a linked list of buffers as a single variable-size buffer.
+var Buffer = require('buffer').Buffer;
 
 function BufferList() {
     this.encoding = 'binary';
+    this.constructor = Buffer;
     
     var head = { next : null, buffer : null };
     var last = { next : null, buffer : null };
@@ -31,6 +33,26 @@ function BufferList() {
             length += buf.length;
             return this;
         });
+    };
+    
+    // Create a single buffer out of all the chunks.
+    this.join = function () {
+        if (!head.buffer) return new this.constructor(0);
+        
+        var big = new Buffer(this.length);
+        var firstBuf = new Buffer(head.buffer.length - offset);
+        head.buffer.copy(firstBuf, 0, offset, head.buffer.length - 1);
+        
+        var b = { buffer : firstBuf, next : head.next };
+        
+        var ix = 0;
+        while (b && b.buffer) {
+            b.buffer.copy(big, ix, 0, b.buffer.length - 1);
+            ix += b.buffer.length;
+            b = b.next;
+        }
+        
+        return big;
     };
     
     // Advance the buffer stream by n bytes.
