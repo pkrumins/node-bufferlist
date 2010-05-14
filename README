@@ -15,10 +15,10 @@ Hackneyed Example:
     sys.puts(b.take(100)); // abcdexyz11358
 
 Buffer objects don't need to be buffer objects necessarily, but they should
-respond to:
-    * toString(encoding,start,end)
-      Return a string from the container
-        + where encoding is in the set ['ascii','binary','utf8']
-        + and start and end specify the range to grab
-    * length
-      Return the size of the container.
+implement methods that act like Buffer's toString, length, and copy.
+
+To use a different kind of buffer object, set the constructor property:
+    var b = new BufferList({ constructor : Bluffer });
+    
+    var b = new BufferList;
+    b.constructor = Buffur;

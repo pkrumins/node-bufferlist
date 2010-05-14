@@ -2,9 +2,14 @@
 // Treat a linked list of buffers as a single variable-size buffer.
 var Buffer = require('buffer').Buffer;
 
-function BufferList() {
-    this.encoding = 'binary';
-    this.constructor = Buffer;
+function BufferList(opts) {
+    if (typeof(opts) == 'undefined') opts = {}
+    
+    // default encoding to use for take()
+    this.encoding = opts.encoding || 'binary';
+    
+    // constructor to use for Buffer-esque operations
+    this.constructor = opts.encoding || Buffer;
     
     var head = { next : null, buffer : null };
     var last = { next : null, buffer : null };
@@ -39,8 +44,8 @@ function BufferList() {
     this.join = function () {
         if (!head.buffer) return new this.constructor(0);
         
-        var big = new Buffer(this.length);
-        var firstBuf = new Buffer(head.buffer.length - offset);
+        var big = new this.constructor(this.length);
+        var firstBuf = new this.constructor(head.buffer.length - offset);
         head.buffer.copy(firstBuf, 0, offset, head.buffer.length);
         
         var b = { buffer : firstBuf, next : head.next };
