@@ -68,17 +68,11 @@ function BufferList(opts) {
         if (!head.buffer) return new this.construct(0);
         
         var big = new this.construct(this.length);
-        var firstBuf = new this.construct(head.buffer.length - offset);
-        head.buffer.copy(firstBuf, 0, offset, head.buffer.length);
-        
-        var b = { buffer : firstBuf, next : head.next };
-        
         var ix = 0;
-        while (b && b.buffer) {
-            b.buffer.copy(big, ix, 0, b.buffer.length);
-            ix += b.buffer.length;
-            b = b.next;
-        }
+        this.forEach(function (buffer) {
+            buffer.copy(big, ix, 0, buffer.length);
+            ix += buffer.length;
+        });
         
         return big;
     };
