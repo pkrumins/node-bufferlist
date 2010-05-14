@@ -110,7 +110,7 @@ function BufferList(opts) {
         var acc = '';
         var encoding = this.encoding;
         this.forEach(function (buffer) {
-            if (n < 0) return true;
+            if (n <= 0) return true;
             acc += buffer.toString(
                 encoding, 0, Math.min(n,buffer.length)
             );
