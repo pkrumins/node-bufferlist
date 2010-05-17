@@ -1,8 +1,12 @@
 // bufferlist.js
 // Treat a linked list of buffers as a single variable-size buffer.
 var Buffer = require('buffer').Buffer;
+var EventEmitter = require('events').EventEmitter;
 
+BufferList.prototype = new EventEmitter;
 function BufferList(opts) {
+    if (!(this instanceof BufferList)) return new BufferList(opts);
+    
     if (typeof(opts) == 'undefined') opts = {}
     
     // default encoding to use for take()
@@ -28,7 +32,8 @@ function BufferList(opts) {
     // Push buffers to the end of the linked list.
     // Return this (self).
     this.push = function () {
-        Array.prototype.slice.call(arguments).forEach(function (buf) {
+        var args = [].concat.apply([], arguments);
+        args.forEach(function (buf) {
             if (!head.buffer) {
                 head.buffer = buf;
                 last = head;
@@ -39,6 +44,8 @@ function BufferList(opts) {
             }
             length += buf.length;
         });
+        
+        this.emit('push', args);
         return this;
     };
     
@@ -92,14 +99,16 @@ function BufferList(opts) {
                 : { buffer : null, next : null }
             ;
         }
+        this.emit('advance', n);
         return this;
     };
     
     // Take n bytes from the start of the buffers.
     // Returns a string.
-    // If there are less than n bytes in all the buffers, returns the entire
-    // concatenated buffer string.
+    // If there are less than n bytes in all the buffers or n is undefined,
+    // returns the entire concatenated buffer string.
     this.take = function (n) {
+        if (n == undefined) n = this.length;
         var b = head;
         var acc = '';
         var encoding = this.encoding;
@@ -111,6 +120,11 @@ function BufferList(opts) {
             n -= buffer.length;
         });
         return acc;
+    };
+    
+    // The entire concatenated buffer as a string.
+    this.toString = function () {
+        return this.take();
     };
 };
 
