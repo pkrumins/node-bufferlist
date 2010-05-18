@@ -13,7 +13,7 @@ function runTest(bufs, check) {
     var binary = Binary(bList)
         .getWord8('xLen')
         .when('xLen', 0, function (vars) {
-            assert.ok(vars.xLen == 0, 'xLen != 0');
+            assert.equal(vars.xLen, 0, 'xLen != 0');
             this
                 .getWord8('msgLen')
                 .getWord8s('msg', function (vars) {

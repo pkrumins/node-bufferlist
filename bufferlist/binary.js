@@ -10,8 +10,7 @@ function Binary(buffer) {
     this.vars = {};
     
     this.tap = function (f) {
-        actions.unshift({
-            type : 'tap',
+        actions.push({
             ready : function () { return true },
             action : function () {
                 f.call(binary, binary.vars);
@@ -40,7 +39,11 @@ function Binary(buffer) {
     };
     
     this.end = function (value) {
-        actions = [];
+        actions.push({
+            ready : function () { return true },
+            action : function () { actions = [] },
+            type : 'end'
+        });
     };
     
     this.flush = function () {
@@ -59,9 +62,7 @@ function Binary(buffer) {
     this.get = function (opts) {
         var into_t = typeof(opts.into);
         if (into_t == 'function') {
-            actions.unshift({
-                type : 'get',
-                bytes : opts.bytes,
+            actions.push({
                 ready : function () {
                     return buffer.length - offset >= opts.bytes;
                 },
@@ -73,9 +74,7 @@ function Binary(buffer) {
             });
         }
         else if (into_t == 'string') {
-            actions.unshift({
-                type : 'get',
-                bytes : opts.bytes,
+            actions.push({
                 ready : function () {
                     return buffer.length - offset >= opts.bytes;
                 },
@@ -110,8 +109,7 @@ function Binary(buffer) {
         
         var into_t = typeof(opts.into);
         if (into_t == 'function') {
-            actions.unshift({
-                type : 'get',
+            actions.push({
                 ready : function () {
                     var s = size();
                     return s && buffer.length - offset >= s;
@@ -125,8 +123,7 @@ function Binary(buffer) {
             });
         }
         else if (into_t == 'string') {
-            actions.unshift({
-                type : 'get',
+            actions.push({
                 ready : function () {
                     var s = size();
                     return s && buffer.length - offset >= s;
@@ -168,10 +165,10 @@ function Binary(buffer) {
             return;
         }
         
-        var action = actions[ actions.length - 1 ];
+        var action = actions[0];
         
         if (action.ready()) {
-            actions.pop();
+            actions.shift();
             action.action();
             pusher();
         }
