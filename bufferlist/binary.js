@@ -38,12 +38,9 @@ function Binary(buffer) {
         });
     };
     
-    this.end = function (value) {
-        actions.push({
-            ready : function () { return true },
-            action : function () { actions = [] },
-            type : 'end'
-        });
+    this.clear = function (value) {
+        actions = [];
+        return this;
     };
     
     this.flush = function () {
@@ -169,7 +166,7 @@ function Binary(buffer) {
         
         if (action.ready()) {
             actions.shift();
-            action.action();
+            action.action.call(this, action.action);
             pusher();
         }
     });

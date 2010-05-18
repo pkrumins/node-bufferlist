@@ -15,6 +15,7 @@ function runTest(bufs, check) {
         .when('xLen', 0, function (vars) {
             assert.equal(vars.xLen, 0, 'xLen != 0');
             this
+                .clear()
                 .getWord8('msgLen')
                 .getWord8s('msg', function (vars) {
                     return vars.msgLen
@@ -22,7 +23,6 @@ function runTest(bufs, check) {
                 .tap(function (vars) {
                     vars.moo = 42;
                 })
-                .end()
             ;
         })
         .getWord8s('xs', 'xLen')
@@ -73,8 +73,8 @@ runTest(
     function (vars) {
         assert.equal(vars.xLen, 0, 'xLen == 0 in "\\x00\\x12happy purring cats"');
         assert.equal(
-            vars.msgLen, 12,
-            'msgLen != 12, msgLen = ' + sys.inspect(vars.msgLen)
+            vars.msgLen, 18,
+            'msgLen != 18, msgLen = ' + sys.inspect(vars.msgLen)
         );
         assert.equal(
             vars.msg,
