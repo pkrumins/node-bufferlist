@@ -17,3 +17,9 @@ assert.equal(
     'abcdexyz11358',
     'join multiple chunks into one Buffer'
 );
+
+assert.equal(
+    b.join(3,6).toString(),
+    'dex',
+    'slice of a buffer join'
+);

@@ -70,15 +70,27 @@ function BufferList(opts) {
         return this;
     };
     
-    // Create a single Buffer out of all the chunks.
-    this.join = function () {
+    // Create a single Buffer out of all the chunks or some subset specified by
+    // start and one-past the end (like slice) in bytes.
+    this.join = function (start, end) {
         if (!head.buffer) return new this.construct(0);
+        if (start == undefined) start = 0;
+        if (end == undefined) end = this.length;
         
-        var big = new this.construct(this.length);
+        var big = new this.construct(end - start);
         var ix = 0;
         this.forEach(function (buffer) {
-            buffer.copy(big, ix, 0, buffer.length);
+            if (start < (ix + buffer.length) && ix < end) {
+                // at least partially contained in the range
+                buffer.copy(
+                    big,
+                    Math.max(0, ix - start),
+                    Math.max(0, start - ix),
+                    Math.min(buffer.length, end - ix)
+                );
+            }
             ix += buffer.length;
+            if (ix > end) return true; // stop processing past end
         });
         
         return big;

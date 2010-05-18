@@ -97,6 +97,8 @@ function Binary(buffer) {
     };
     
     this.gets = function (opts) {
+        // todo: combine actions, return buffer object for gets
+        
         if (typeof(opts.length) == 'string') {
             var s = opts.length;
             opts.length = function (vars) { return vars[s] };
@@ -115,7 +117,6 @@ function Binary(buffer) {
                     return s && buffer.length - offset >= s;
                 },
                 action : function () {
-                    // todo: combine actions, return buffer object for gets
                     var s = size();
                     var data = buffer.take(s + offset).slice(offset);
                     offset += s;
@@ -131,7 +132,6 @@ function Binary(buffer) {
                     return s && buffer.length - offset >= s;
                 },
                 action : function () {
-                    // todo: combine actions, return buffer object for gets
                     var s = size();
                     var data = buffer.take(s + offset).slice(offset);
                     offset += s;
