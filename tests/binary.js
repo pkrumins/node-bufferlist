@@ -7,10 +7,8 @@ var BufferList = require('bufferlist').BufferList;
 var Binary = require('bufferlist/binary').Binary;
 var sys = require('sys');
 
-var bList = new BufferList;
-
 function runTest(bufs, check) {
-    var tapped = 0;
+    var bList = new BufferList;
     
     var binary = Binary(bList)
         .getWord8('xLen')
@@ -21,15 +19,15 @@ function runTest(bufs, check) {
                 .getWord8s('msg', function (vars) {
                     return vars.msgLen
                 })
-                .tap(function () {
-                    tapped = 1;
+                .tap(function (vars) {
+                    vars.moo = 42;
                 })
                 .end()
             ;
         })
         .getWord8s('xs', 'xLen')
         .tap(function (vars) {
-            tapped = 1;
+            vars.moo = 100;
         })
     ;
     
@@ -37,11 +35,9 @@ function runTest(bufs, check) {
         var buf = bufs.shift();
         if (!buf) {
             clearInterval(iv);
-            assert.equal(tapped, 1, 'not tapped');
             check(binary.vars);
         }
         else {
-            var t = tapped;
             bList.push(buf);
         }
     }, 50);
@@ -64,6 +60,7 @@ runTest(
         assert.equal(
             xs, 'meow', 'xs != "meow", xs = ' + sys.inspect(xs)
         );
+        assert.equal(vars.moo, 100, 'moo != 100');
     }
 );
 
@@ -75,11 +72,15 @@ runTest(
     }),
     function (vars) {
         assert.equal(vars.xLen, 0, 'xLen == 0 in "\\x00\\x12happy purring cats"');
-        assert.equal(vars.msgLen, 12, 'msgLen == 12 in "\\x00\\x12happy purring cats"');
+        assert.equal(
+            vars.msgLen, 12,
+            'msgLen != 12, msgLen = ' + sys.inspect(vars.msgLen)
+        );
         assert.equal(
             vars.msg,
             'happy purring cats',
             'msg == "happy purring cats in "\\x00\\x12happy purring cats"'
         );
+        assert.equal(vars.moo, 42, 'moo != 42');
     }
 );

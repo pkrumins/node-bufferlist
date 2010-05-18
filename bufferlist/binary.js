@@ -40,7 +40,7 @@ function Binary(buffer) {
     };
     
     this.end = function (value) {
-        // actions.push(...)
+        actions = [];
     };
     
     this.flush = function () {
