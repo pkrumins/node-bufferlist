@@ -92,6 +92,30 @@ function Binary(buffer) {
         return this.get({ into : into, bytes : 1 });
     };
     
+    this.getWord16be = function (into) {
+        return this.get({ into : into, bytes : 2, endian : 'big' });
+    };
+    
+    this.getWord16le = function (into) {
+        return this.get({ into : into, bytes : 2, endian : 'little' });
+    };
+    
+    this.getWord32be = function (into) {
+        return this.get({ into : into, bytes : 4, endian : 'big' });
+    };
+    
+    this.getWord32le = function (into) {
+        return this.get({ into : into, bytes : 4, endian : 'little' });
+    };
+    
+    this.getWord64be = function (into) {
+        return this.get({ into : into, bytes : 8, endian : 'big' });
+    };
+    
+    this.getWord64le = function (into) {
+        return this.get({ into : into, bytes : 8, endian : 'little' });
+    };
+    
     this.gets = function (opts) {
         // todo: combine actions, return buffer object for gets
         
@@ -109,42 +133,46 @@ function Binary(buffer) {
         }
         
         var into_t = typeof(opts.into);
-        if (into_t == 'function') {
-            actions.push({
-                ready : function () {
-                    var s = size();
-                    return s && buffer.length - offset >= s;
-                },
-                action : function () {
-                    var s = size();
-                    var data = buffer.join(offset, offset + s);
-                    offset += s;
-                    opts.into.call(binary,data);
-                },
-            });
-        }
-        else if (into_t == 'string') {
-            actions.push({
-                ready : function () {
-                    var s = size();
-                    return s && buffer.length - offset >= s;
-                },
-                action : function () {
-                    var s = size();
-                    var data = buffer.join(offset, offset + s);
-                    offset += s;
-                    binary.vars[opts.into] = data;
-                },
-            });
-        }
-        else {
+        var into_types = 'function string'.split(' ');
+        if (into_types.indexOf(into_t) < 0) {
             throw TypeError('Unsupported into type: ' + into_t);
-        };
+        }
+        
+        actions.push({
+            ready : function () {
+                var s = size();
+                return s && buffer.length - offset >= s;
+            },
+            action : function () {
+                var s = size();
+                var data = buffer.join(offset, offset + s);
+                offset += s;
+                
+                if (into_t == 'function') {
+                    opts.into.call(binary,data);
+                }
+                else if (into_t == 'string') {
+                    binary.vars[opts.into] = data;
+                }
+            },
+        });
         return this;
     };
     
     this.getWord8s = function (into, length) {
         return this.gets({ into : into, bytes : 1, length : length });
+    };
+    
+    this.getWord16s = function (into, length) {
+        return this.gets({ into : into, bytes : 2, length : length });
+    };
+    
+    this.getWord32s = function (into, length) {
+        return this.gets({ into : into, bytes : 4, length : length });
+    };
+    
+    this.getWord64s = function (into, length) {
+        return this.gets({ into : into, bytes : 8, length : length });
     };
     
     this.rewind = function (n) {
