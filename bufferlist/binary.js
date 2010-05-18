@@ -50,8 +50,8 @@ function Binary(buffer) {
     
     function decode (bytes) {
         var acc = 0;
-        for (var i in bytes) {
-            acc += Math.pow(256,i) * bytes.charCodeAt(i);
+        for (var i = 0; i < bytes.length; i++) {
+            acc += Math.pow(256,i) * bytes[i];
         }
         return acc;
     }
@@ -66,7 +66,7 @@ function Binary(buffer) {
                     return buffer.length - offset >= opts.bytes;
                 },
                 action : function () {
-                    var data = buffer.take(opts.bytes + offset).slice(offset);
+                    var data = buffer.join(offset, offset + opts.bytes);
                     offset += opts.bytes;
                     opts.into.call(binary,decode(data));
                 },
@@ -80,7 +80,7 @@ function Binary(buffer) {
                     return buffer.length - offset >= opts.bytes;
                 },
                 action : function () {
-                    var data = buffer.take(opts.bytes + offset).slice(offset);
+                    var data = buffer.join(offset, offset + opts.bytes);
                     offset += opts.bytes;
                     binary.vars[opts.into] = decode(data);
                 },
@@ -118,7 +118,7 @@ function Binary(buffer) {
                 },
                 action : function () {
                     var s = size();
-                    var data = buffer.take(s + offset).slice(offset);
+                    var data = buffer.join(offset, offset + s);
                     offset += s;
                     opts.into.call(binary,data);
                 },
@@ -133,7 +133,7 @@ function Binary(buffer) {
                 },
                 action : function () {
                     var s = size();
-                    var data = buffer.take(s + offset).slice(offset);
+                    var data = buffer.join(offset, offset + s);
                     offset += s;
                     binary.vars[opts.into] = data;
                 },

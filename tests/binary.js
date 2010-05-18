@@ -49,28 +49,28 @@ function runTest(bufs, check) {
 
 runTest(
     ['\x04','meow'].map(function (s) {
-        var b = new Buffer(s.length);
-        b.write(s, 'ascii');
+        var b = new Buffer(Buffer.byteLength(s,'binary'));
+        b.write(s,'binary');
         return b;
     }),
     function (vars) {
         assert.equal(
-            vars.xLen, 4,
-            'xLen == 4 failed (xLen == "' + vars.xLen + '")'
+            vars.xLen,
+            4,
+            'xLen == 4 failed (xLen == ' + sys.inspect(vars.xLen) + ')'
         );
         
+        var xs = vars.xs.toString();
         assert.equal(
-            vars.xs,
-            'meow',
-            'xs != "meow", xs = "' + sys.inspect(vars.xs) + '"'
+            xs, 'meow', 'xs != "meow", xs = ' + sys.inspect(xs)
         );
     }
 );
 
 runTest(
     ['\x00','\x12hap','py pur','ring c','ats'].map(function (s) {
-        var b = new Buffer(s.length);
-        b.write(s, 'ascii');
+        var b = new Buffer(Buffer.byteLength(s,'binary'));
+        b.write(s,'binary');
         return b;
     }),
     function (vars) {
