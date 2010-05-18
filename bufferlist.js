@@ -4,6 +4,7 @@ var Buffer = require('buffer').Buffer;
 var EventEmitter = require('events').EventEmitter;
 
 BufferList.prototype = new EventEmitter;
+exports.BufferList = BufferList;
 function BufferList(opts) {
     if (!(this instanceof BufferList)) return new BufferList(opts);
     
@@ -139,5 +140,3 @@ function BufferList(opts) {
         return this.take();
     };
 };
-
-exports.BufferList = BufferList;

@@ -99,6 +99,10 @@ function Binary(buffer) {
             var s = opts.length;
             opts.length = function (vars) { return vars[s] };
         }
+        else if (typeof(opts.length) == 'number') {
+            var s = opts.length;
+            opts.length = function (vars) { return s };
+        }
         
         function size () {
             return opts.length(binary.vars) * opts.bytes;
