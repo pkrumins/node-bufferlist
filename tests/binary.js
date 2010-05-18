@@ -11,12 +11,12 @@ function runTest(bufs, check) {
     var bList = new BufferList;
     
     var binary = Binary(bList)
-        .getWord8('xLen')
+        .getWord16be('xLen')
         .when('xLen', 0, function (vars) {
             assert.equal(vars.xLen, 0, 'xLen != 0');
             this
                 .clear()
-                .getWord8('msgLen')
+                .getWord32le('msgLen')
                 .getWord8s('msg', function (vars) {
                     return vars.msgLen
                 })
@@ -44,7 +44,7 @@ function runTest(bufs, check) {
 }
 
 runTest(
-    ['\x04','meow'].map(function (s) {
+    ['\x00\x04','meow'].map(function (s) {
         var b = new Buffer(Buffer.byteLength(s,'binary'));
         b.write(s,'binary');
         return b;
@@ -65,7 +65,8 @@ runTest(
 );
 
 runTest(
-    ['\x00','\x12hap','py pur','ring c','ats'].map(function (s) {
+    ['\x00\x00','\x12\x00\x00\x00hap','py pur','ring c','ats']
+    .map(function (s) {
         var b = new Buffer(Buffer.byteLength(s,'binary'));
         b.write(s,'binary');
         return b;
