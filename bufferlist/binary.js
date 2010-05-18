@@ -1,32 +1,11 @@
 var BufferList = require('bufferlist').BufferList;
-
-/*
-// will act something like this:
-
-new Binary(buffer)
-    .getWord8('secLen')
-    .tap(function (vars) {
-        if (vars.secLen == 0) {
-            if (vars.)
-            this.end();
-        }
-    })
-    .getWord8('msgLen')
-    .getWord8s('msg', function () {
-        return this.msgLen + 5
-    })
-    .getWord8(function (size) {
-        this.size = size;
-    })
-    .getWords
-;
-*/
+var sys = require('sys');
+var EventEmitter = require('events').EventEmitter;
 
 exports.Binary = Binary;
 function Binary(buffer) {
+    if (!(this instanceof Binary)) return new Binary(buffer);
     var binary = this;
-    var offset = 0;
-    var actions = []; // actions to perform once the bytes are available
     
     function hasBytes (n) {
         return n >= buffer.length - offset;
@@ -35,8 +14,33 @@ function Binary(buffer) {
     this.vars = {};
     
     this.tap = function (f) {
-        f.call(this, vars);
+        var binary = this;
+        actions.unshift({
+            type : 'tap',
+            action : function (data) {
+                f.call(binary, binary.vars);
+            },
+        });
+        
         return this;
+    };
+    
+    // Perform some action when v == value
+    this.when = function (v, value, f) {
+        return this.tap(function (vars) {
+            if (this.vars[v] == value) {
+                f.apply(this);
+            }
+        });
+    };
+    
+    // Perform some action when v != value
+    this.unless = function (v, value, f) {
+        return this.tap(function (vars) {
+            if (this.vars[v] != value) {
+                f.apply(this);
+            }
+        });
     };
     
     this.end = function (value) {
@@ -50,9 +54,9 @@ function Binary(buffer) {
     };
     
     this.get = function (opts) {
-        var info_t = typeof(opts.info);
-        if (info_t == 'function') {
-            actions.push({
+        var into_t = typeof(opts.into);
+        if (into_t == 'function') {
+            actions.unshift({
                 type : 'get',
                 bytes : opts.bytes,
                 action : function (data) {
@@ -60,31 +64,32 @@ function Binary(buffer) {
                 },
             });
         }
-        else if (info_t == 'string') {
-            actions.push({
+        else if (into_t == 'string') {
+            actions.unshift({
                 type : 'get',
                 bytes : opts.bytes,
                 action : function (data) {
-                    this.vars[opts.into] = data;
+                    binary.vars[opts.into] = data;
                 },
             });
         }
         else {
-            throw TypeError('Unsupported into type: ' + info_t);
+            sys.p(opts);
+            throw TypeError('Unsupported into type: ' + into_t);
         };
         return this;
     };
     
     this.getWord8 = function (into) {
-        return this.get({ into : into, bytes : 8 });
+        return this.get({ into : into, bytes : 1 });
     };
     
-    this.gets = function () {
+    this.gets = function (opts) {
         return this;
     };
     
     this.getWord8s = function (into, length) {
-        return this.gets({ into : into, bytes : 8, length : length });
+        return this.gets({ into : into, bytes : 1, length : length });
     };
     
     this.rewind = function (n) {
@@ -96,5 +101,23 @@ function Binary(buffer) {
         offset = n;
         return this;
     };
+    
+    var offset = 0;
+    var actions = []; // actions to perform once the bytes are available
+    
+    buffer.addListener('push', function pusher (args) {
+        var action = actions[ actions.length - 1 ];
+        if (!action) {
+            buffer.removeListener('push', pusher);
+        }
+        else if (action.type == 'tap') {
+            actions.pop();
+            action.action(binary.vars);
+        }
+        else if (action.type == 'get' && buffer.length >= action.bytes) {
+            actions.pop();
+            action.action(buffer.take(action.bytes));
+        }
+    });
 }
 
