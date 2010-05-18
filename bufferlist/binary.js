@@ -46,6 +46,7 @@ function Binary(buffer) {
     this.flush = function () {
         buffer.advance(offset);
         offset = 0;
+        return this;
     };
     
     // convert byte strings to little endian numbers
