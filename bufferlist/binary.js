@@ -48,7 +48,8 @@ function Binary(buffer) {
         offset = 0;
     };
     
-    function decode (bytes) {
+    // convert byte strings to little endian numbers
+    function decodeLE (bytes) {
         var acc = 0;
         for (var i = 0; i < bytes.length; i++) {
             acc += Math.pow(256,i) * bytes[i];
@@ -56,35 +57,42 @@ function Binary(buffer) {
         return acc;
     }
     
+    // convert byte strings to big endian numbers
+    function decodeBE (bytes) {
+        var acc = 0;
+        for (var i = 0; i < bytes.length; i++) {
+            acc += Math.pow(256, bytes.length - i - 1) * bytes[i];
+        }
+        return acc;
+    }
+    
     this.get = function (opts) {
         var into_t = typeof(opts.into);
-        if (into_t == 'function') {
-            actions.push({
-                ready : function () {
-                    return buffer.length - offset >= opts.bytes;
-                },
-                action : function () {
-                    var data = buffer.join(offset, offset + opts.bytes);
-                    offset += opts.bytes;
-                    opts.into.call(binary,decode(data));
-                },
-            });
-        }
-        else if (into_t == 'string') {
-            actions.push({
-                ready : function () {
-                    return buffer.length - offset >= opts.bytes;
-                },
-                action : function () {
-                    var data = buffer.join(offset, offset + opts.bytes);
-                    offset += opts.bytes;
-                    binary.vars[opts.into] = decode(data);
-                },
-            });
-        }
-        else {
+        var into_types = 'function string'.split(' ');
+        if (into_types.indexOf(into_t) < 0) {
             throw TypeError('Unsupported into type: ' + into_t);
-        };
+        }
+        
+        actions.push({
+            ready : function () {
+                return buffer.length - offset >= opts.bytes;
+            },
+            action : function () {
+                var data = buffer.join(offset, offset + opts.bytes);
+                var decoded = opts.endian && opts.endian == 'little'
+                    ? decodeLE(data)
+                    : decodeBE(data)
+                ;
+                
+                offset += opts.bytes;
+                if (into_t == 'function') {
+                    opts.into.call(binary, decoded);
+                }
+                else {
+                    binary.vars[opts.into] = decoded;
+                }
+            },
+        });
         return this;
     };
     
@@ -161,18 +169,6 @@ function Binary(buffer) {
     
     this.getWord8s = function (into, length) {
         return this.gets({ into : into, bytes : 1, length : length });
-    };
-    
-    this.getWord16s = function (into, length) {
-        return this.gets({ into : into, bytes : 2, length : length });
-    };
-    
-    this.getWord32s = function (into, length) {
-        return this.gets({ into : into, bytes : 4, length : length });
-    };
-    
-    this.getWord64s = function (into, length) {
-        return this.gets({ into : into, bytes : 8, length : length });
     };
     
     this.rewind = function (n) {
