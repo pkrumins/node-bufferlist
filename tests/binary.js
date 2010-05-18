@@ -5,6 +5,7 @@ var assert = require('assert');
 var Buffer = require('buffer').Buffer;
 var BufferList = require('bufferlist').BufferList;
 var Binary = require('bufferlist/binary').Binary;
+var sys = require('sys');
 
 var bList = new BufferList;
 
@@ -17,10 +18,12 @@ function runTest(bufs, check) {
             assert.ok(vars.xLen == 0, 'xLen != 0');
             this
                 .getWord8('msgLen')
-                .getWord8s('msg', function () {
-                    return this.msgLen + 5
+                .getWord8s('msg', function (vars) {
+                    return vars.msgLen
                 })
-                .tap(function () { tapped = 1 })
+                .tap(function () {
+                    tapped = 1;
+                })
                 .end()
             ;
         })
@@ -31,10 +34,10 @@ function runTest(bufs, check) {
     ;
     
     var iv = setInterval(function () {
-        var buf = bufs.pop();
+        var buf = bufs.shift();
         if (!buf) {
             clearInterval(iv);
-            assert.equal(tapped, 1, 'tapped');
+            assert.equal(tapped, 1, 'not tapped');
             check(binary.vars);
         }
         else {
@@ -47,7 +50,7 @@ function runTest(bufs, check) {
 runTest(
     ['\x04','meow'].map(function (s) {
         var b = new Buffer(s.length);
-        b.write(s);
+        b.write(s, 'ascii');
         return b;
     }),
     function (vars) {
@@ -55,17 +58,22 @@ runTest(
             vars.xLen, 4,
             'xLen == 4 failed (xLen == "' + vars.xLen + '")'
         );
-        assert.equal(vars.xs, 'meow', 'xs == "meow" in "\\x04meow"');
+        
+        assert.equal(
+            vars.xs,
+            'meow',
+            'xs != "meow", xs = "' + sys.inspect(vars.xs) + '"'
+        );
     }
 );
 
 runTest(
     ['\x00','\x12hap','py pur','ring c','ats'].map(function (s) {
         var b = new Buffer(s.length);
-        b.write(s);
+        b.write(s, 'ascii');
         return b;
     }),
-    function (params) {
+    function (vars) {
         assert.equal(vars.xLen, 0, 'xLen == 0 in "\\x00\\x12happy purring cats"');
         assert.equal(vars.msgLen, 12, 'msgLen == 12 in "\\x00\\x12happy purring cats"');
         assert.equal(

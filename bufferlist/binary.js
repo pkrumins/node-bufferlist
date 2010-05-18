@@ -1,23 +1,19 @@
 var BufferList = require('bufferlist').BufferList;
-var sys = require('sys');
 var EventEmitter = require('events').EventEmitter;
+var sys = require('sys');
 
 exports.Binary = Binary;
 function Binary(buffer) {
     if (!(this instanceof Binary)) return new Binary(buffer);
     var binary = this;
     
-    function hasBytes (n) {
-        return n >= buffer.length - offset;
-    }
-    
     this.vars = {};
     
     this.tap = function (f) {
-        var binary = this;
         actions.unshift({
             type : 'tap',
-            action : function (data) {
+            ready : function () { return true },
+            action : function () {
                 f.call(binary, binary.vars);
             },
         });
@@ -29,7 +25,7 @@ function Binary(buffer) {
     this.when = function (v, value, f) {
         return this.tap(function (vars) {
             if (this.vars[v] == value) {
-                f.apply(this);
+                f.call(this, vars);
             }
         });
     };
@@ -38,20 +34,27 @@ function Binary(buffer) {
     this.unless = function (v, value, f) {
         return this.tap(function (vars) {
             if (this.vars[v] != value) {
-                f.apply(this);
+                f.call(this, vars);
             }
         });
     };
     
     this.end = function (value) {
-        this.produce(value);
-        buffer.advance(offset);
+        // actions.push(...)
     };
     
-    this.produce = function (value) {
-        // ...
-        return this;
+    this.flush = function () {
+        buffer.advance(offset);
+        offset = 0;
     };
+    
+    function decode (bytes) {
+        var acc = 0;
+        for (var i in bytes) {
+            acc += Math.pow(256,i) * bytes.charCodeAt(i);
+        }
+        return acc;
+    }
     
     this.get = function (opts) {
         var into_t = typeof(opts.into);
@@ -59,8 +62,13 @@ function Binary(buffer) {
             actions.unshift({
                 type : 'get',
                 bytes : opts.bytes,
-                action : function (data) {
-                    opts.into.call(binary,data);
+                ready : function () {
+                    return buffer.length - offset >= opts.bytes;
+                },
+                action : function () {
+                    var data = buffer.take(opts.bytes + offset).slice(offset);
+                    offset += opts.bytes;
+                    opts.into.call(binary,decode(data));
                 },
             });
         }
@@ -68,13 +76,17 @@ function Binary(buffer) {
             actions.unshift({
                 type : 'get',
                 bytes : opts.bytes,
-                action : function (data) {
-                    binary.vars[opts.into] = data;
+                ready : function () {
+                    return buffer.length - offset >= opts.bytes;
+                },
+                action : function () {
+                    var data = buffer.take(opts.bytes + offset).slice(offset);
+                    offset += opts.bytes;
+                    binary.vars[opts.into] = decode(data);
                 },
             });
         }
         else {
-            sys.p(opts);
             throw TypeError('Unsupported into type: ' + into_t);
         };
         return this;
@@ -85,6 +97,51 @@ function Binary(buffer) {
     };
     
     this.gets = function (opts) {
+        if (typeof(opts.length) == 'string') {
+            var s = opts.length;
+            opts.length = function (vars) { return vars[s] };
+        }
+        
+        function size () {
+            return opts.length(binary.vars) * opts.bytes;
+        }
+        
+        var into_t = typeof(opts.into);
+        if (into_t == 'function') {
+            actions.unshift({
+                type : 'get',
+                ready : function () {
+                    var s = size();
+                    return s && buffer.length - offset >= s;
+                },
+                action : function () {
+                    // todo: combine actions, return buffer object for gets
+                    var s = size();
+                    var data = buffer.take(s + offset).slice(offset);
+                    offset += s;
+                    opts.into.call(binary,data);
+                },
+            });
+        }
+        else if (into_t == 'string') {
+            actions.unshift({
+                type : 'get',
+                ready : function () {
+                    var s = size();
+                    return s && buffer.length - offset >= s;
+                },
+                action : function () {
+                    // todo: combine actions, return buffer object for gets
+                    var s = size();
+                    var data = buffer.take(s + offset).slice(offset);
+                    offset += s;
+                    binary.vars[opts.into] = data;
+                },
+            });
+        }
+        else {
+            throw TypeError('Unsupported into type: ' + into_t);
+        };
         return this;
     };
     
@@ -106,17 +163,17 @@ function Binary(buffer) {
     var actions = []; // actions to perform once the bytes are available
     
     buffer.addListener('push', function pusher (args) {
-        var action = actions[ actions.length - 1 ];
-        if (!action) {
+        if (actions.length == 0) {
             buffer.removeListener('push', pusher);
+            return;
         }
-        else if (action.type == 'tap') {
+        
+        var action = actions[ actions.length - 1 ];
+        
+        if (action.ready()) {
             actions.pop();
-            action.action(binary.vars);
-        }
-        else if (action.type == 'get' && buffer.length >= action.bytes) {
-            actions.pop();
-            action.action(buffer.take(action.bytes));
+            action.action();
+            pusher();
         }
     });
 }
