@@ -17,7 +17,7 @@ function runTest(bufs, check) {
             this
                 .clear()
                 .getWord32le('msgLen')
-                .getWord8s('msg', function (vars) {
+                .getBuffer('msg', function (vars) {
                     return vars.msgLen
                 })
                 .tap(function (vars) {
@@ -25,7 +25,7 @@ function runTest(bufs, check) {
                 })
             ;
         })
-        .getWord8s('xs', 'xLen')
+        .getBuffer('xs', 'xLen')
         .tap(function (vars) {
             vars.moo = 100;
         })

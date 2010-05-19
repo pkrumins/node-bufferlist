@@ -168,7 +168,7 @@ function Binary(buffer) {
         return this;
     };
     
-    this.getWord8s = function (into, length) {
+    this.getBuffer = function (into, length) {
         return this.gets({ into : into, bytes : 1, length : length });
     };
     
