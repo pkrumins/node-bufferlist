@@ -124,6 +124,18 @@ function Binary(buffer) {
     this.getWord64le = function (into) {
         return this.get({ into : into, bytes : 8, endian : 'little' });
     };
+
+    this.skipBytes = function (bytes) {
+        actions.push({
+            ready : function () {
+                return buffer.length - offset >= bytes
+            },
+            action : function () {
+                offset += bytes;
+            }
+        });
+        return this;
+    }
     
     this.gets = function (opts) {
         // todo: combine actions, return buffer object for gets
