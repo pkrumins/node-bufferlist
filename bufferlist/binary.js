@@ -10,7 +10,7 @@ function Binary(buffer) {
     this.vars = {};
     
     this.tap = function (f) {
-        actions.push({
+        this.pushAction({
             ready : function () { return true },
             action : function () {
                 f.call(binary, binary.vars);
@@ -38,9 +38,24 @@ function Binary(buffer) {
         });
     };
     
+    // Clear the action queue. This is useful for inner branches.
+    // Perhaps later there should also be a push and pop for entire action
+    // queues.
     this.clear = function (value) {
         actions = [];
         return this;
+    };
+    
+    // Stop processing and remove any listeners
+    this.end = function () {
+        this.pushAction({
+            ready : function () { return true },
+            action : function () {
+                actions = [];
+                buffer.removeListener('push', process);
+            }
+        });
+        return;
     };
     
     // convert byte strings to little endian numbers
@@ -68,7 +83,7 @@ function Binary(buffer) {
             throw TypeError('Unsupported into type: ' + into_t);
         }
         
-        actions.push({
+        this.pushAction({
             ready : function () {
                 return buffer.length - offset >= opts.bytes;
             },
@@ -141,7 +156,7 @@ function Binary(buffer) {
             throw TypeError('Unsupported into type: ' + into_t);
         }
         
-        actions.push({
+        this.pushAction({
             ready : function () {
                 var s = size();
                 return s && buffer.length - offset >= s;
@@ -170,7 +185,7 @@ function Binary(buffer) {
     // the linked list can be garbage collected and so the module doesn't need
     // to traverse the list as far.
     this.flush = function () {
-        actions.push({
+        this.pushAction({
             ready : function () {
             },
             action : function () {
@@ -200,7 +215,7 @@ function Binary(buffer) {
     // Raises an exception when the buffer list has been advanced
     // (via flush) past the number of bytes specified.
     this.jump = function (bytes) {
-        actions.push({
+        this.pushAction({
             ready : function () {
                 return buffer.length - offset >= bytes
             },
@@ -214,22 +229,24 @@ function Binary(buffer) {
         return this;
     };
     
+    this.pushAction = function (opts) {
+        actions.push(opts);
+        // process after a push since it might just be a tap
+        process();
+    };
+    
     var offset = 0;
     var actions = []; // actions to perform once the bytes are available
     
-    buffer.addListener('push', function pusher (args) {
-        if (actions.length == 0) {
-            buffer.removeListener('push', pusher);
-            return;
-        }
-        
+    function process () {
         var action = actions[0];
         
-        if (action.ready()) {
+        if (action && action.ready()) {
             actions.shift();
             action.action.call(this, action.action);
-            pusher();
+            process();
         }
-    });
+    }
+    buffer.addListener('push', process);
 }
 
