@@ -43,12 +43,6 @@ function Binary(buffer) {
         return this;
     };
     
-    this.flush = function () {
-        buffer.advance(offset);
-        offset = 0;
-        return this;
-    };
-    
     // convert byte strings to little endian numbers
     function decodeLE (bytes) {
         var acc = 0;
@@ -124,18 +118,6 @@ function Binary(buffer) {
     this.getWord64le = function (into) {
         return this.get({ into : into, bytes : 8, endian : 'little' });
     };
-
-    this.skipBytes = function (bytes) {
-        actions.push({
-            ready : function () {
-                return buffer.length - offset >= bytes
-            },
-            action : function () {
-                offset += bytes;
-            }
-        });
-        return this;
-    }
     
     this.gets = function (opts) {
         // todo: combine actions, return buffer object for gets
@@ -184,13 +166,51 @@ function Binary(buffer) {
         return this.gets({ into : into, bytes : 1, length : length });
     };
     
-    this.rewind = function (n) {
-        offset -= n;
+    // Advance the bufferlist to the internal offset so that unused Buffers in
+    // the linked list can be garbage collected and so the module doesn't need
+    // to traverse the list as far.
+    this.flush = function () {
+        actions.push({
+            ready : function () {
+            },
+            action : function () {
+                buffer.advance(offset);
+                offset = 0;
+            }
+        });
         return this;
     };
     
-    this.jump = function (n) {
-        offset = n;
+    // Skip ahead a relative number of bytes in the input stream.
+    // Uses jump.
+    this.skip = function (bytes) {
+        this.jump(offset + bytes);
+        return this;
+    }
+    
+    // Jump back a relative number of bytes in the bufferlist stream.
+    // Uses jump.
+    this.rewind = function (bytes) {
+        this.jump(offset - bytes);
+        return this;
+    };
+    
+    // Jump an absolute number of bytes into the bufferlist stream.
+    // Bytes may be positive or negative.
+    // Raises an exception when the buffer list has been advanced
+    // (via flush) past the number of bytes specified.
+    this.jump = function (bytes) {
+        actions.push({
+            ready : function () {
+                return buffer.length - offset >= bytes
+            },
+            action : function () {
+                offset += bytes;
+                if (offset < 0) {
+                    throw RangeError('BufferList offset < 0');
+                }
+            }
+        });
         return this;
     };
     
