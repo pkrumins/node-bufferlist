@@ -23,6 +23,7 @@ function runTest(bufs, check) {
                 .tap(function (vars) {
                     vars.moo = 42;
                 })
+                .end()
             ;
         })
         .getBuffer('xs', 'xLen')
