@@ -11,7 +11,7 @@ function Binary(buffer) {
     
     this.tap = function (f) {
         this.pushAction({
-            ready : function () { return true },
+            ready : true,
             action : function () {
                 this.pushContext();
                 f.call(this, this.vars);
@@ -42,7 +42,7 @@ function Binary(buffer) {
     // Terminate the present context
     this.end = function () {
         this.pushAction({
-            ready : function () { return true },
+            ready : true,
             action : function () {
                 this.popContext();
                 if (contexts.length == 0) {
@@ -56,7 +56,7 @@ function Binary(buffer) {
     // Perform some action forever
     this.forever = function (f) {
         this.pushAction({
-            ready : function () { return true },
+            ready : true,
             action : function () {
                 f.call(binary, binary.vars);
                 binary.forever(f);
@@ -69,7 +69,7 @@ function Binary(buffer) {
     this.repeat = function (n, f) {
         for (var i=1; i<=n; i++) {
             this.pushAction({
-                ready : function () { return true },
+                ready : true,
                 action : function () {
                     f.call(binary, i, binary.vars);
                 }
@@ -89,7 +89,7 @@ function Binary(buffer) {
     // Stop processing and remove any listeners
     this.exit = function () {
         this.pushAction({
-            ready : function () { return true },
+            ready : true,
             action : function () {
                 contexts = [];
                 buffer.removeListener('push', process);
@@ -298,7 +298,17 @@ function Binary(buffer) {
             }
             else {
                 var action = contexts[0][0];
-                if (action.ready()) {
+                var doAction = false;
+                if (typeof(action.ready) == 'function') {
+                    doaction = action.ready();
+                }
+                else if (typeof(action.ready) == 'boolean') {
+                    doAction = action.ready;
+                }
+                else {
+                    throw "Unknown action.ready type"
+                }
+                if (doAction) {
                     contexts[0].shift();
                     action.action.call(binary, action.action);
                 }
