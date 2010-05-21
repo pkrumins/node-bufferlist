@@ -45,6 +45,9 @@ function Binary(buffer) {
             ready : function () { return true },
             action : function () {
                 this.popContext();
+                if (contexts.length == 0) {
+                    buffer.removeListener('push', process);
+                }
             }
         });
         return;
@@ -138,6 +141,10 @@ function Binary(buffer) {
         return this.get({ into : into, bytes : 8, endian : 'little' });
     };
     
+    this.getBuffer = function (into, length) {
+        return this.gets({ into : into, bytes : 1, length : length });
+    };
+    
     this.gets = function (opts) {
         // todo: combine actions, return buffer object for gets
         
@@ -179,10 +186,6 @@ function Binary(buffer) {
             },
         });
         return this;
-    };
-    
-    this.getBuffer = function (into, length) {
-        return this.gets({ into : into, bytes : 1, length : length });
     };
     
     // Advance the bufferlist to the internal offset so that unused Buffers in
@@ -240,9 +243,7 @@ function Binary(buffer) {
     
     this.popContext = function () {
         contexts.shift();
-        if (contexts.length == 0) {
-            buffer.removeListener('push', process);
-        }
+        process();
         return this;
     };
     
@@ -258,16 +259,16 @@ function Binary(buffer) {
     var contexts = []; // actions to perform once the bytes are available
     
     function process () {
-        if (contexts[0]) {
-            var action = contexts[0][0];
-            if (!action) {
+        if (contexts.length > 0) {
+            if (contexts[0].length == 0) {
                 binary.popContext();
-                process();
             }
-            else if (action.ready()) {
-                contexts[0].shift();
-                action.action.call(binary, action.action);
-                process();
+            else {
+                var action = contexts[0][0];
+                if (action.ready()) {
+                    contexts[0].shift();
+                    action.action.call(binary, action.action);
+                }
             }
         }
     }

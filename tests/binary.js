@@ -23,7 +23,7 @@ function runTest(bufs, check) {
                     return vars.msgLen
                 })
                 .tap(function (vars) {
-                    sys.log(vars);
+                    sys.puts('moo: ' + sys.inspect(vars));
                     vars.moo = 42;
                 })
                 .exit()
@@ -84,9 +84,8 @@ runTest(
             'msgLen != 18, msgLen = ' + sys.inspect(vars.msgLen)
         );
         assert.equal(
-            vars.msg,
-            'happy purring cats',
-            'msg == "happy purring cats in "\\x00\\x12happy purring cats"'
+            vars.msg, 'happy purring cats',
+            'msg != "happy purring cats", msg == ' + sys.inspect(vars.msg)
         );
         assert.equal(vars.moo, 42, 'moo != 42');
     }
