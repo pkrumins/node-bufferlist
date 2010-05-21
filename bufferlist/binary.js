@@ -271,37 +271,32 @@ function Binary(buffer) {
     
     this.pushContext = function () {
         contexts.unshift([]);
+        process();
         return this;
     };
     
     this.popContext = function () {
         contexts.shift();
-        process();
         return this;
     };
     
     // Push an action onto the current context
     this.pushAction = function (opts) {
-        if (contexts.length == 0) this.pushContext();
         contexts[0].push(opts);
         // process after a push since it might just be a tap
         process();
     };
     
     var offset = 0;
-    var contexts = []; // actions to perform once the bytes are available
+    var contexts = [[]]; // actions to perform once the bytes are available
     
     function process () {
-        if (contexts.length > 0) {
-            if (contexts[0].length == 0) {
-                binary.popContext();
-            }
-            else {
-                var action = contexts[0][0];
-                if (action.ready()) {
-                    contexts[0].shift();
-                    action.action.call(binary, action.action);
-                }
+        if (contexts.length > 0 && contexts[0].length > 0) {
+            var action = contexts[0][0];
+            if (action.ready()) {
+                contexts[0].shift();
+                action.action.call(binary, action.action);
+                process();
             }
         }
     }

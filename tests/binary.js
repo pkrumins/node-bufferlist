@@ -17,13 +17,12 @@ function runTest(bufs, check) {
             this
                 .getWord32le('msgLen')
                 .tap(function (vars) {
-                    sys.p(vars);
+                    sys.puts('32');
                 })
                 .getBuffer('msg', function (vars) {
                     return vars.msgLen
                 })
                 .tap(function (vars) {
-                    sys.puts('moo: ' + sys.inspect(vars));
                     vars.moo = 42;
                 })
                 .exit()
@@ -33,6 +32,7 @@ function runTest(bufs, check) {
         .tap(function (vars) {
             vars.moo = 100;
         })
+        .end()
     ;
     
     var iv = setInterval(function () {
