@@ -50,7 +50,40 @@ function Binary(buffer) {
                 }
             }
         });
-        return;
+        return this;
+    }
+    
+    // Perform some action forever
+    this.forever = function (f) {
+        this.pushAction({
+            ready : function () { return true },
+            action : function () {
+                f.call(binary, binary.vars);
+                binary.forever(f);
+            }
+        });
+        return this;
+    }
+    
+    // Repeat some action n times
+    this.repeat = function (n, f) {
+        for (var i=1; i<=n; i++) {
+            this.pushAction({
+                ready : function () { return true },
+                action : function () {
+                    f.call(binary, i, binary.vars);
+                }
+            });
+        }
+        return this;
+    }
+
+    // Clear the action queue. This is useful for inner branches.
+    // Perhaps later there should also be a push and pop for entire action
+    // queues.
+    this.clear = function (value) {
+        actions = [];
+        return this;
     };
     
     // Stop processing and remove any listeners
@@ -62,7 +95,7 @@ function Binary(buffer) {
                 buffer.removeListener('push', process);
             }
         });
-        return;
+        return this;
     };
     
     // convert byte strings to little endian numbers
