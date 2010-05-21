@@ -13,10 +13,11 @@ function Binary(buffer) {
         this.pushAction({
             ready : function () { return true },
             action : function () {
-                f.call(binary, binary.vars);
+                this.pushContext();
+                f.call(this, this.vars);
+                this.popContext();
             },
         });
-        
         return this;
     };
     
@@ -38,20 +39,23 @@ function Binary(buffer) {
         });
     };
     
-    // Clear the action queue. This is useful for inner branches.
-    // Perhaps later there should also be a push and pop for entire action
-    // queues.
-    this.clear = function (value) {
-        actions = [];
-        return this;
-    };
-    
-    // Stop processing and remove any listeners
+    // Terminate the present context
     this.end = function () {
         this.pushAction({
             ready : function () { return true },
             action : function () {
-                actions = [];
+                this.popContext();
+            }
+        });
+        return;
+    };
+    
+    // Stop processing and remove any listeners
+    this.exit = function () {
+        this.pushAction({
+            ready : function () { return true },
+            action : function () {
+                contexts = [];
                 buffer.removeListener('push', process);
             }
         });
@@ -229,22 +233,42 @@ function Binary(buffer) {
         return this;
     };
     
+    this.pushContext = function () {
+        contexts.unshift([]);
+        return this;
+    };
+    
+    this.popContext = function () {
+        contexts.shift();
+        if (contexts.length == 0) {
+            buffer.removeListener('push', process);
+        }
+        return this;
+    };
+    
+    // Push an action onto the current context
     this.pushAction = function (opts) {
-        actions.push(opts);
+        if (contexts.length == 0) this.pushContext();
+        contexts[0].push(opts);
         // process after a push since it might just be a tap
         process();
     };
     
     var offset = 0;
-    var actions = []; // actions to perform once the bytes are available
+    var contexts = []; // actions to perform once the bytes are available
     
     function process () {
-        var action = actions[0];
-        
-        if (action && action.ready()) {
-            actions.shift();
-            action.action.call(this, action.action);
-            process();
+        if (contexts[0]) {
+            var action = contexts[0][0];
+            if (!action) {
+                binary.popContext();
+                process();
+            }
+            else if (action.ready()) {
+                contexts[0].shift();
+                action.action.call(binary, action.action);
+                process();
+            }
         }
     }
     buffer.addListener('push', process);

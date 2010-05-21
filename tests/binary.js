@@ -13,17 +13,20 @@ function runTest(bufs, check) {
     var binary = Binary(bList)
         .getWord16be('xLen')
         .when('xLen', 0, function (vars) {
-            assert.equal(vars.xLen, 0, 'xLen != 0');
+            assert.equal(vars.xLen, 0, 'when check for 0 failed');
             this
-                .clear()
                 .getWord32le('msgLen')
+                .tap(function (vars) {
+                    sys.p(vars);
+                })
                 .getBuffer('msg', function (vars) {
                     return vars.msgLen
                 })
                 .tap(function (vars) {
+                    sys.log(vars);
                     vars.moo = 42;
                 })
-                .end()
+                .exit()
             ;
         })
         .getBuffer('xs', 'xLen')
@@ -61,7 +64,9 @@ runTest(
         assert.equal(
             xs, 'meow', 'xs != "meow", xs = ' + sys.inspect(xs)
         );
-        assert.equal(vars.moo, 100, 'moo != 100');
+        assert.equal(
+            vars.moo, 100, 'moo != 100, moo == ' + sys.inspect(vars.moo)
+        );
     }
 );
 
