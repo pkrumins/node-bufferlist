@@ -44,6 +44,7 @@ function Binary(buffer) {
             ready : function () { return true },
             action : function () {
                 f.call(binary, binary.vars);
+                binary.forever(f);
             }
         })
     }
