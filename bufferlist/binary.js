@@ -5,8 +5,6 @@ var sys = require('sys');
 exports.Binary = Binary;
 function Binary(buffer) {
     if (!(this instanceof Binary)) return new Binary(buffer);
-    var binary = this;
-    
     this.vars = {};
     
     this.tap = function (f) {
@@ -78,14 +76,6 @@ function Binary(buffer) {
         return this;
     }
 
-    // Clear the action queue. This is useful for inner branches.
-    // Perhaps later there should also be a push and pop for entire action
-    // queues.
-    this.clear = function (value) {
-        actions = [];
-        return this;
-    };
-    
     // Stop processing and remove any listeners
     this.exit = function () {
         this.pushAction({
@@ -136,10 +126,10 @@ function Binary(buffer) {
                 
                 offset += opts.bytes;
                 if (into_t == 'function') {
-                    opts.into.call(binary, decoded);
+                    opts.into.call(this, decoded);
                 }
                 else {
-                    binary.vars[opts.into] = decoded;
+                    this.vars[opts.into] = decoded;
                 }
             },
         });
@@ -179,8 +169,6 @@ function Binary(buffer) {
     };
     
     this.gets = function (opts) {
-        // todo: combine actions, return buffer object for gets
-        
         if (typeof(opts.length) == 'string') {
             var s = opts.length;
             opts.length = function (vars) { return vars[s] };
@@ -191,7 +179,7 @@ function Binary(buffer) {
         }
         
         function size () {
-            return opts.length(binary.vars) * opts.bytes;
+            return opts.length.call(binary,binary.vars) * opts.bytes;
         }
         
         var into_t = typeof(opts.into);
@@ -211,10 +199,10 @@ function Binary(buffer) {
                 offset += s;
                 
                 if (into_t == 'function') {
-                    opts.into.call(binary,data);
+                    opts.into.call(this,data);
                 }
                 else if (into_t == 'string') {
-                    binary.vars[opts.into] = data;
+                    this.vars[opts.into] = data;
                 }
             },
         });
@@ -271,7 +259,6 @@ function Binary(buffer) {
     
     this.pushContext = function () {
         contexts.unshift([]);
-        process();
         return this;
     };
     
@@ -283,12 +270,12 @@ function Binary(buffer) {
     // Push an action onto the current context
     this.pushAction = function (opts) {
         contexts[0].push(opts);
-        // process after a push since it might just be a tap
-        process();
+        return this;
     };
     
     var offset = 0;
     var contexts = [[]]; // actions to perform once the bytes are available
+    var binary = this;
     
     function process () {
         if (contexts.length > 0 && contexts[0].length > 0) {

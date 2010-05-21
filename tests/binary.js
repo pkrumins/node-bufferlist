@@ -48,7 +48,7 @@ function runTest(bufs, check) {
 }
 
 runTest(
-    ['\x00\x04','meow'].map(function (s) {
+    ['\x00','\x04m','eow'].map(function (s) {
         var b = new Buffer(Buffer.byteLength(s,'binary'));
         b.write(s,'binary');
         return b;
