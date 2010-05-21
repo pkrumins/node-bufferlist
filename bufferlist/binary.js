@@ -48,6 +48,19 @@ function Binary(buffer) {
         })
     }
 
+    // Repeat some action n times
+    this.repeat = function (n, f) {
+        for (var i=1; i<=n; i++) {
+            this.pushAction({
+                ready : function () { return true },
+                action : function () {
+                    f.call(binary, i, binary.vars);
+                }
+            });
+        }
+        return this;
+    }
+
     // Clear the action queue. This is useful for inner branches.
     // Perhaps later there should also be a push and pop for entire action
     // queues.
