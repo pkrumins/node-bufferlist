@@ -17,7 +17,6 @@ Binary(bList)
     })
     .tap(function (vars) {
         assert.equal(tapped, 5, 'tapped != 5');
-        tapped = 0;
     })
     .repeat(3, function(i, vars) {
         this
@@ -48,15 +47,6 @@ Binary(bList)
                     sys.inspect(trickyList)
             );
         }
-    })
-;
-
-Binary(bList)
-    .repeat(5, function(vars) {
-        tapped++
-    })
-    .tap(function (vars) {
-        assert.equal(tapped, 5, 'tapped != 5');
     })
 ;
 
