@@ -78,6 +78,22 @@ function Binary(buffer) {
         return this;
     }
 
+    /*
+     
+    can't figure .until out yet, cause some other places are broken
+
+    // Repeat some action until v == value
+    this.until = function (v, value, f) {
+        this.pushAction({
+            ready : true,
+            action : function () {
+                f.call(binary, binary.vars);
+            }
+        });
+        return this;
+    }
+    */
+
     // Clear the action queue. This is useful for inner branches.
     // Perhaps later there should also be a push and pop for entire action
     // queues.
