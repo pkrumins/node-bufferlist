@@ -37,7 +37,17 @@ function Binary(buffer) {
             }
         });
     };
-    
+
+    // Perform some action forever
+    this.forever = function (f) {
+        this.pushAction({
+            ready : function () { return true },
+            action : function () {
+                f.call(binary, binary.vars);
+            }
+        })
+    }
+
     // Clear the action queue. This is useful for inner branches.
     // Perhaps later there should also be a push and pop for entire action
     // queues.
