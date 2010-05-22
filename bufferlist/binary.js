@@ -11,9 +11,7 @@ function Binary(buffer) {
         this.pushAction({
             ready : function () { return true },
             action : function () {
-                this.pushContext();
                 f.call(this, this.vars);
-                this.popContext();
             },
         });
         return this;
@@ -36,20 +34,6 @@ function Binary(buffer) {
             }
         });
     };
-    
-    // Terminate the present context
-    this.end = function () {
-        this.pushAction({
-            ready : function () { return true },
-            action : function () {
-                this.popContext();
-                if (contexts.length == 0) {
-                    buffer.removeListener('push', process);
-                }
-            }
-        });
-        return this;
-    }
     
     // Perform some action forever
     this.forever = function (f) {
@@ -75,13 +59,18 @@ function Binary(buffer) {
         }
         return this;
     }
-
+    
+    this.clear = function () {
+        actions = [];
+        return this;
+    };
+    
     // Stop processing and remove any listeners
     this.exit = function () {
         this.pushAction({
             ready : function () { return true },
             action : function () {
-                contexts = [];
+                actions = [];
                 buffer.removeListener('push', process);
             }
         });
@@ -257,34 +246,22 @@ function Binary(buffer) {
         return this;
     };
     
-    this.pushContext = function () {
-        contexts.unshift([]);
-        return this;
-    };
-    
-    this.popContext = function () {
-        contexts.shift();
-        return this;
-    };
-    
-    // Push an action onto the current context
+    // Push an action onto the current action queue
     this.pushAction = function (opts) {
-        contexts[0].push(opts);
+        actions.push(opts);
         return this;
     };
     
     var offset = 0;
-    var contexts = [[]]; // actions to perform once the bytes are available
+    var actions = []; // actions to perform once the bytes are available
     var binary = this;
     
     function process () {
-        if (contexts.length > 0 && contexts[0].length > 0) {
-            var action = contexts[0][0];
-            if (action.ready()) {
-                contexts[0].shift();
-                action.action.call(binary, action.action);
-                process();
-            }
+        var action = actions[0];
+        if (action && action.ready()) {
+            actions.shift();
+            action.action.call(binary, action.action);
+            process();
         }
     }
     buffer.addListener('push', process);

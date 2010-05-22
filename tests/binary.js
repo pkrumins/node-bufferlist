@@ -15,10 +15,8 @@ function runTest(bufs, check) {
         .when('xLen', 0, function (vars) {
             assert.equal(vars.xLen, 0, 'when check for 0 failed');
             this
+                .clear()
                 .getWord32le('msgLen')
-                .tap(function (vars) {
-                    sys.puts('32');
-                })
                 .getBuffer('msg', function (vars) {
                     return vars.msgLen
                 })
@@ -32,7 +30,6 @@ function runTest(bufs, check) {
         .tap(function (vars) {
             vars.moo = 100;
         })
-        .end()
     ;
     
     var iv = setInterval(function () {
