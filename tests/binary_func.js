@@ -8,16 +8,18 @@ var BufferList = require('bufferlist').BufferList;
 var Binary = require('bufferlist/binary').Binary;
 
 // test repeat
-var tapped = 0;
+var reps = 0;
 var trickyList = [];
 var bList = new BufferList;
 
 Binary(bList)
     .repeat(5, function(n, vars) {
-        tapped++;
+        reps++;
     })
     .tap(function (vars) {
-        assert.equal(tapped, 5, 'tapped != 5 (in repeat test)');
+        assert.equal(
+            reps, 5, 'reps != 5, reps == ' + reps + ' in repeat test'
+        );
     })
     .repeat(3, function(i, vars) {
         this
@@ -51,24 +53,32 @@ Binary(bList)
     })
 ;
 
+assert.equal(reps, 5, 'reps != 5, reps == ' + reps + ' in outer check');
+
 // test until
-var tapped = 0, tapped2 = 0;
+var untils = 0, untils2 = 0;
 var bList = new BufferList;
 
 Binary(bList)
     .until('byte', 0, function(vars) {
-        this.getWord8('byte')
-        tapped++;
+        this.getWord8('byte');
+        untils++;
     })
     .tap(function (vars) {
-        assert.equal(tapped, 4, 'tapped != 4 (in until test)');
+        assert.equal(
+            untils, 4,
+            'untils != 4, untils == ' + untils + ' in until test'
+        );
     })
     .until('byte', 'f', function (vars) {
         this.getWord8('byte');
-        tapped2++;
+        untils2++;
     })
     .tap(function (vars) {
-        assert.equal(tapped2, 3, 'tapped2 != 3 (in until test)');
+        assert.equal(
+            untils2, 3,
+            'untils2 != 3, untils2 == ' + untils2 + ' in until test'
+        );
     })
 ;
 

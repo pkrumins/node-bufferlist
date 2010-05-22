@@ -85,16 +85,17 @@ function Binary(buffer) {
         this.pushAction({
             ready : true,
             action : function () {
-                if (checker(this.vars)) {
+                if (!checker(this.vars)) {
                     f.call(this, this.vars);
-                }
-                else {
                     this.pushAction({
                         ready : true,
                         action : function () {
                             this.until(checker,f);
-                        }
+                            sys.log('inner!');
+                        },
+                        type : 'until',
                     });
+                    sys.log(sys.inspect(actions));
                 }
             }
         });
@@ -292,6 +293,7 @@ function Binary(buffer) {
     // Push an action onto the current action queue
     this.pushAction = function (opts) {
         actions.push(opts);
+        process();
         return this;
     };
     
