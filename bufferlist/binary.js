@@ -36,12 +36,12 @@ function Binary(buffer) {
     };
     
     // Perform some action forever
-    this.forever = function (f) {
+    this.forever = function f (g) {
         this.pushAction({
             ready : true,
             action : function () {
-                f.call(this, binary.vars);
-                this.forever(f);
+                g.call(this, this.vars);
+                f.call(this, g);
             }
         });
         return this;

@@ -53,5 +53,13 @@ Binary(bList)
     })
 ;
 
-assert.equal(reps, 5, 'reps != 5, reps == ' + reps + ' in outer check');
+assert.equal(reps, 5, 'reps != 5, reps == ' + reps + ' in outer repeat check');
 
+var c = 0;
+Binary(new BufferList)
+    .forever(function (vars) {
+        c ++;
+        if (c == 100) this.exit();
+    })
+;
+assert.equal(c, 100, 'c != 100, c == ' + c + ' in terminated forever check');
