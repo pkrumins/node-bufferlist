@@ -7,6 +7,7 @@ var Buffer = require('buffer').Buffer;
 var BufferList = require('bufferlist').BufferList;
 var Binary = require('bufferlist/binary').Binary;
 
+// test repeat
 var tapped = 0;
 var trickyList = [];
 var bList = new BufferList;
@@ -16,8 +17,7 @@ Binary(bList)
         tapped++;
     })
     .tap(function (vars) {
-        assert.equal(tapped, 5, 'tapped != 5');
-        tapped = 0;
+        assert.equal(tapped, 5, 'tapped != 5 (in repeat test)');
     })
     .repeat(3, function(i, vars) {
         this
@@ -51,12 +51,28 @@ Binary(bList)
     })
 ;
 
+// test until
+var tapped = 0, tapped2 = 0;
+var bList = new BufferList;
+
 Binary(bList)
-    .repeat(5, function(vars) {
-        tapped++
+    .until('byte', 0, function(vars) {
+        this.getWord8('byte')
+        tapped++;
     })
     .tap(function (vars) {
-        assert.equal(tapped, 5, 'tapped != 5');
+        assert.equal(tapped, 4, 'tapped != 4 (in until test)');
+    })
+    .until('byte', 'f', function (vars) {
+        this.getWord8('byte');
+        tapped2++;
+    })
+    .tap(function (vars) {
+        assert.equal(tapped2, 3, 'tapped2 != 3 (in until test)');
     })
 ;
+
+var buf = new Buffer(7);
+buf.write("abc\x00def", 'binary');
+bList.push(buf);
 

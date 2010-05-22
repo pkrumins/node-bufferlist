@@ -9,7 +9,7 @@ function Binary(buffer) {
     
     this.tap = function (f) {
         this.pushAction({
-            ready : function () { return true },
+            ready : true,
             action : function () {
                 f.call(this, this.vars);
             },
@@ -38,7 +38,7 @@ function Binary(buffer) {
     // Perform some action forever
     this.forever = function (f) {
         this.pushAction({
-            ready : function () { return true },
+            ready : true,
             action : function () {
                 f.call(binary, binary.vars);
                 binary.forever(f);
@@ -51,7 +51,7 @@ function Binary(buffer) {
     this.repeat = function (n, f) {
         for (var i=1; i<=n; i++) {
             this.pushAction({
-                ready : function () { return true },
+                ready : true,
                 action : function () {
                     f.call(binary, i, binary.vars);
                 }
@@ -60,7 +60,23 @@ function Binary(buffer) {
         return this;
     }
     
-    this.clear = function () {
+    // can't figure .until out yet, cause some other places are broken
+
+    // Repeat some action until v == value
+    this.until = function (v, value, f) {
+        this.pushAction({
+            ready : true,
+            action : function () {
+                f.call(binary, binary.vars);
+            }
+        });
+        return this;
+    }
+    
+    // Clear the action queue. This is useful for inner branches.
+    // Perhaps later there should also be a push and pop for entire action
+    // queues.
+    this.clear = function (value) {
         actions = [];
         return this;
     };
@@ -68,7 +84,7 @@ function Binary(buffer) {
     // Stop processing and remove any listeners
     this.exit = function () {
         this.pushAction({
-            ready : function () { return true },
+            ready : true,
             action : function () {
                 actions = [];
                 buffer.removeListener('push', process);
@@ -203,8 +219,7 @@ function Binary(buffer) {
     // to traverse the list as far.
     this.flush = function () {
         this.pushAction({
-            ready : function () {
-            },
+            ready : true,
             action : function () {
                 buffer.advance(offset);
                 offset = 0;
@@ -258,7 +273,15 @@ function Binary(buffer) {
     
     function process () {
         var action = actions[0];
-        if (action && action.ready()) {
+        if (!action) return;
+        
+        var ready = {
+            'function' : action.ready,
+            'boolean' : function () { return action.ready },
+        }[typeof(action.ready)];
+        if (!ready) throw "Unknown action.ready type";
+        
+        if (ready()) {
             actions.shift();
             action.action.call(binary, action.action);
             process();
