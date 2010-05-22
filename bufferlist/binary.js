@@ -38,13 +38,18 @@ function Binary(buffer) {
     
     // Perform some action forever
     this.forever = function f (g) {
-        this.pushAction({
-            ready : true,
+        var action = {
+            ready : false,
             action : function () {
                 g.call(this, this.vars);
                 f.call(binary, g);
             }
-        });
+        };
+        this.pushAction(action);
+        setTimeout(function () {
+            action.ready = true;
+            binary.emit('next');
+        }, 0);
         return this;
     }
     
@@ -263,8 +268,6 @@ function Binary(buffer) {
     var binary = this;
     
     function process () {
-        sys.log('process');
-        
         var action = actions[0];
         if (!action) return;
         

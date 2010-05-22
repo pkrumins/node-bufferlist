@@ -59,8 +59,12 @@ var c = 0;
 Binary(new BufferList)
     .forever(function (vars) {
         c ++;
-        sys.log(c);
-        if (c == 100) this.exit();
+        if (c == 10000) this.exit();
     })
 ;
-assert.equal(c, 100, 'c != 100, c == ' + c + ' in terminated forever check');
+
+setTimeout(function () {
+    assert.equal(
+        c, 10000, 'c != 100, c == ' + c + ' in terminated forever check'
+    );
+}, 1000);
