@@ -260,14 +260,14 @@ function Binary(buffer) {
     // Skip ahead a relative number of bytes in the input stream.
     // Uses jump.
     this.skip = function (bytes) {
-        this.jump(offset + bytes);
+        this.jump(bytes);
         return this;
     }
     
     // Jump back a relative number of bytes in the bufferlist stream.
     // Uses jump.
     this.rewind = function (bytes) {
-        this.jump(offset - bytes);
+        this.jump(bytes);
         return this;
     };
     
