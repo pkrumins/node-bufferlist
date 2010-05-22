@@ -40,8 +40,8 @@ function Binary(buffer) {
         this.pushAction({
             ready : true,
             action : function () {
-                f.call(binary, binary.vars);
-                binary.forever(f);
+                f.call(this, binary.vars);
+                this.forever(f);
             }
         });
         return this;
@@ -53,21 +53,49 @@ function Binary(buffer) {
             this.pushAction({
                 ready : true,
                 action : function () {
-                    f.call(binary, i, binary.vars);
+                    // last arg is i so vars is in the usual place
+                    f.call(this, this.vars, i);
                 }
             });
         }
         return this;
     }
     
-    // can't figure .until out yet, cause some other places are broken
-
     // Repeat some action until v == value
-    this.until = function (v, value, f) {
+    this.until = function () {
+        if (arguments.length == 3) {
+            var v1 = arguments[0];
+            var v2 = arguments[1];
+            var checker = function (vars) {
+                if (typeof(v1) == 'string') {
+                    v1 = vars[v1];
+                }
+                if (typeof(v2) == 'string') {
+                    v2 = vars[v2];
+                }
+                return v1 == v2;
+            };
+            var f = arguments[2];
+        }
+        else if (arguments.length == 2) {
+            var checker = arguments[0];
+            var f = arguments[1];
+        }
+        
         this.pushAction({
             ready : true,
             action : function () {
-                f.call(binary, binary.vars);
+                if (checker(this.vars)) {
+                    f.call(this, this.vars);
+                }
+                else {
+                    this.pushAction({
+                        ready : true,
+                        action : function () {
+                            this.until(checker,f);
+                        }
+                    });
+                }
             }
         });
         return this;
