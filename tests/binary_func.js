@@ -59,6 +59,7 @@ var c = 0;
 Binary(new BufferList)
     .forever(function (vars) {
         c ++;
+        sys.log(c);
         if (c == 100) this.exit();
     })
 ;

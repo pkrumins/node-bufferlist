@@ -2,6 +2,7 @@ var BufferList = require('bufferlist').BufferList;
 var EventEmitter = require('events').EventEmitter;
 var sys = require('sys');
 
+Binary.prototype = new EventEmitter;
 exports.Binary = Binary;
 function Binary(buffer) {
     if (!(this instanceof Binary)) return new Binary(buffer);
@@ -41,7 +42,7 @@ function Binary(buffer) {
             ready : true,
             action : function () {
                 g.call(this, this.vars);
-                f.call(this, g);
+                f.call(binary, g);
             }
         });
         return this;
@@ -76,6 +77,7 @@ function Binary(buffer) {
             action : function () {
                 actions = [];
                 buffer.removeListener('push', process);
+                this.removeListener('next', process);
             }
         });
         return this;
@@ -252,7 +254,7 @@ function Binary(buffer) {
     // Push an action onto the current action queue
     this.pushAction = function (opts) {
         actions.push(opts);
-        process();
+        this.emit('next');
         return this;
     };
     
@@ -261,6 +263,8 @@ function Binary(buffer) {
     var binary = this;
     
     function process () {
+        sys.log('process');
+        
         var action = actions[0];
         if (!action) return;
         
@@ -273,9 +277,10 @@ function Binary(buffer) {
         if (ready()) {
             actions.shift();
             action.action.call(binary, action.action);
-            process();
+            binary.emit('next');
         }
     }
+    this.addListener('next', process);
     buffer.addListener('push', process);
 }
 
