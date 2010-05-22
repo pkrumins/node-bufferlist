@@ -21,9 +21,9 @@ Binary(bList)
             reps, 5, 'reps != 5, reps == ' + reps + ' in repeat test'
         );
     })
-    .repeat(3, function(i, vars) {
+    .repeat(3, function (vars, i) {
         this
-            .repeat(4, function (j, vars) {
+            .repeat(4, function (vars, j) {
                 trickyList.push([i,j]);
             })
         ;
