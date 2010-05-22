@@ -12,12 +12,14 @@ function Binary(buffer) {
         this.pushAction({
             ready : true,
             action : function () {
+                this.pushContext();
                 f.call(this, this.vars);
-            },
+                this.lazyPopContext();
+            }
         });
         return this;
     };
-    
+
     // Perform some action when v == value
     this.when = function (v, value, f) {
         return this.tap(function (vars) {
@@ -52,9 +54,15 @@ function Binary(buffer) {
         }, 0);
         return this;
     }
+
+    this.f = function (x) {
+        sys.log(x);
+        return this;
+    }
     
     // Repeat some action n times
     this.repeat = function (n, f) {
+        var n = typeof(n) == 'string' ? this.vars[n] : n;
         for (var i=1; i<=n; i++) {
             this.pushAction({
                 ready : true,
@@ -71,7 +79,7 @@ function Binary(buffer) {
     // Perhaps later there should also be a push and pop for entire action
     // queues.
     this.clear = function (value) {
-        actions = [];
+        contexts = [[]];
         return this;
     };
     
@@ -80,7 +88,7 @@ function Binary(buffer) {
         this.pushAction({
             ready : true,
             action : function () {
-                actions = [];
+                contexts = [[]];
                 buffer.removeListener('push', process);
                 this.removeListener('next', process);
             }
@@ -258,17 +266,45 @@ function Binary(buffer) {
     
     // Push an action onto the current action queue
     this.pushAction = function (opts) {
-        actions.push(opts);
+        contexts[0].push(opts);
         this.emit('next');
         return this;
     };
-    
+
+    this.popAction = function () {
+        return contexts[0].shift();
+    }
+
+    this.nextAction = function () {
+        if (contexts[0].length == 0) return;
+        return contexts[0][0];
+    }
+
+    this.pushContext = function () {
+        contexts.unshift([]);
+        return this;
+    }
+
+    this.popContext = function () {
+        contexts.shift();
+        return this;
+    }
+
+    this.lazyPopContext = function () {
+        this.pushAction({
+            ready : true,
+            action : function () {
+                this.popContext();
+            }
+        });
+    }
+
     var offset = 0;
-    var actions = []; // actions to perform once the bytes are available
+    var contexts = [[]];
     var binary = this;
     
     function process () {
-        var action = actions[0];
+        var action = binary.nextAction()
         if (!action) return;
         
         var ready = {
@@ -278,8 +314,8 @@ function Binary(buffer) {
         if (!ready) throw "Unknown action.ready type";
         
         if (ready()) {
-            actions.shift();
-            action.action.call(binary, action.action);
+            binary.popAction();
+            action.action.call(binary, action.action, contexts[0]);
             binary.emit('next');
         }
     }

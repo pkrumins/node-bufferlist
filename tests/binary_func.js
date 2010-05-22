@@ -13,12 +13,12 @@ var trickyList = [];
 var bList = new BufferList;
 
 Binary(bList)
-    .repeat(5, function(n, vars) {
+    .repeat(5000, function(n, vars) {
         reps++;
     })
     .tap(function (vars) {
         assert.equal(
-            reps, 5, 'reps != 5, reps == ' + reps + ' in repeat test'
+            reps, 5000, 'reps != 5000, reps == ' + reps + ' in repeat test'
         );
     })
     .repeat(3, function (vars, i) {
@@ -53,7 +53,7 @@ Binary(bList)
     })
 ;
 
-assert.equal(reps, 5, 'reps != 5, reps == ' + reps + ' in outer repeat check');
+assert.equal(reps, 5000, 'reps != 5000, reps == ' + reps + ' in outer repeat check');
 
 var c = 0;
 Binary(new BufferList)
