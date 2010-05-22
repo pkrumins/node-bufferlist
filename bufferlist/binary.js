@@ -267,7 +267,7 @@ function Binary(buffer) {
     // Jump back a relative number of bytes in the bufferlist stream.
     // Uses jump.
     this.rewind = function (bytes) {
-        this.jump(bytes);
+        this.jump(-bytes);
         return this;
     };
     
