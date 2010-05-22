@@ -55,34 +55,3 @@ Binary(bList)
 
 assert.equal(reps, 5, 'reps != 5, reps == ' + reps + ' in outer check');
 
-// test until
-var untils = 0, untils2 = 0;
-var bList = new BufferList;
-
-Binary(bList)
-    .until('byte', 0, function(vars) {
-        this.getWord8('byte');
-        untils++;
-    })
-    .tap(function (vars) {
-        assert.equal(
-            untils, 4,
-            'untils != 4, untils == ' + untils + ' in until test'
-        );
-    })
-    .until('byte', 'f', function (vars) {
-        this.getWord8('byte');
-        untils2++;
-    })
-    .tap(function (vars) {
-        assert.equal(
-            untils2, 3,
-            'untils2 != 3, untils2 == ' + untils2 + ' in until test'
-        );
-    })
-;
-
-var buf = new Buffer(7);
-buf.write("abc\x00def", 'binary');
-bList.push(buf);
-

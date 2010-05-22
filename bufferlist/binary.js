@@ -61,47 +61,6 @@ function Binary(buffer) {
         return this;
     }
     
-    // Repeat some action until v == value
-    this.until = function () {
-        if (arguments.length == 3) {
-            var v1 = arguments[0];
-            var v2 = arguments[1];
-            var checker = function (vars) {
-                if (typeof(v1) == 'string') {
-                    v1 = vars[v1];
-                }
-                if (typeof(v2) == 'string') {
-                    v2 = vars[v2];
-                }
-                return v1 == v2;
-            };
-            var f = arguments[2];
-        }
-        else if (arguments.length == 2) {
-            var checker = arguments[0];
-            var f = arguments[1];
-        }
-        
-        this.pushAction({
-            ready : true,
-            action : function () {
-                if (!checker(this.vars)) {
-                    f.call(this, this.vars);
-                    this.pushAction({
-                        ready : true,
-                        action : function () {
-                            this.until(checker,f);
-                            sys.log('inner!');
-                        },
-                        type : 'until',
-                    });
-                    sys.log(sys.inspect(actions));
-                }
-            }
-        });
-        return this;
-    }
-    
     // Clear the action queue. This is useful for inner branches.
     // Perhaps later there should also be a push and pop for entire action
     // queues.
