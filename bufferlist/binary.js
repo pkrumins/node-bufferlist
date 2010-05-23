@@ -63,14 +63,16 @@ function Binary(buffer) {
     // Repeat some action n times
     this.repeat = function (n, f) {
         var n = typeof(n) == 'string' ? this.vars[n] : n;
-        for (var i=1; i<=n; i++) {
-            this.pushAction({
-                ready : true,
-                action : function () {
-                    // last arg is i so vars is in the usual place
-                    f.call(this, this.vars, i);
-                }
-            });
+        for (var i=0; i<n; i++) {
+            (function (j) {
+                this.pushAction({
+                    ready : true,
+                    action : function () {
+                        // last arg is i so vars is in the usual place
+                        f.call(this, this.vars, j);
+                    }
+                });
+            }).call(this, i);
         }
         return this;
     }
