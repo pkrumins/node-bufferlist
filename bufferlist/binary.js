@@ -9,112 +9,8 @@ function Binary(buffer) {
     this.vars = {};
     
     this.tap = function (f) {
-        this.pushAction({
-            ready : true,
-            action : function () {
-                this.pushContext();
-                f.call(this, this.vars);
-                this.lazyPopContext();
-            }
-        });
         return this;
     };
-
-    // Perform some action when v == value
-    this.when = function (v, value, f) {
-        return this.tap(function (vars) {
-            if (this.vars[v] == value) {
-                f.call(this, vars);
-            }
-        });
-    };
-    
-    // Perform some action when v != value
-    this.unless = function (v, value, f) {
-        return this.tap(function (vars) {
-            if (this.vars[v] != value) {
-                f.call(this, vars);
-            }
-        });
-    };
-    
-    // Perform some action forever
-    this.forever = function f (g) {
-        var action = {
-            ready : false,
-            action : function () {
-                g.call(this, this.vars);
-                f.call(binary, g);
-            }
-        };
-        this.pushAction(action);
-        setTimeout(function () {
-            action.ready = true;
-            binary.emit('next');
-        }, 0);
-        return this;
-    }
-
-    this.f = function (x) {
-        sys.log(x);
-        return this;
-    }
-    
-    // Repeat some action n times
-    this.repeat = function (n, f) {
-        var n = typeof(n) == 'string' ? this.vars[n] : n;
-        for (var i = 0; i < n; i++) {
-            this.pushAction({
-                ready : true,
-                action : function () {
-                    // last arg is i so vars is in the usual place
-                    this.pushContext();
-                    f.call(this, this.vars, i);
-                    this.lazyPopContext();
-                }
-            });
-        }
-        return this;
-    }
-    
-    // Clear the action queue. This is useful for inner branches.
-    // Perhaps later there should also be a push and pop for entire action
-    // queues.
-    this.clear = function (value) {
-        contexts = [[]];
-        return this;
-    };
-    
-    // Stop processing and remove any listeners
-    this.exit = function () {
-        this.pushAction({
-            ready : true,
-            action : function () {
-                contexts = [[]];
-                buffer.removeListener('push', process);
-                this.removeListener('next', process);
-            }
-        });
-        return this;
-    };
-    
-    // convert byte strings to little endian numbers
-    function decodeLE (bytes) {
-        var acc = 0;
-        for (var i = 0; i < bytes.length; i++) {
-            acc += Math.pow(256,i) * bytes[i];
-        }
-        return acc;
-    }
-    
-    // convert byte strings to big endian numbers
-    function decodeBE (bytes) {
-        var acc = 0;
-        for (var i = 0; i < bytes.length; i++) {
-            acc += Math.pow(256, bytes.length - i - 1) * bytes[i];
-        }
-        return acc;
-    }
     
     this.get = function (opts) {
         var into_t = typeof(opts.into);
@@ -219,91 +115,11 @@ function Binary(buffer) {
         return this;
     };
     
-    // Advance the bufferlist to the internal offset so that unused Buffers in
-    // the linked list can be garbage collected and so the module doesn't need
-    // to traverse the list as far.
-    this.flush = function () {
-        this.pushAction({
-            ready : true,
-            action : function () {
-                buffer.advance(offset);
-                offset = 0;
-            }
-        });
-        return this;
-    };
-    
-    // Skip ahead a relative number of bytes in the input stream.
-    // Uses jump.
-    this.skip = function (bytes) {
-        this.jump(bytes);
-        return this;
-    }
-    
-    // Jump back a relative number of bytes in the bufferlist stream.
-    // Uses jump.
-    this.rewind = function (bytes) {
-        this.jump(-bytes);
-        return this;
-    };
-    
-    // Jump an absolute number of bytes into the bufferlist stream.
-    // Bytes may be positive or negative.
-    // Raises an exception when the buffer list has been advanced
-    // (via flush) past the number of bytes specified.
-    this.jump = function (bytes) {
-        this.pushAction({
-            ready : function () {
-                return buffer.length - offset >= bytes
-            },
-            action : function () {
-                offset += bytes;
-                if (offset < 0) {
-                    throw RangeError('BufferList offset < 0');
-                }
-            }
-        });
-        return this;
-    };
-    
-    // Push an action onto the current action queue
-    this.pushAction = function (opts) {
-        contexts[0].push(opts);
-        this.emit('next');
-        return this;
-    };
-
-    this.popAction = function () {
-        return contexts[0].shift();
-    }
-
-    this.nextAction = function () {
-        if (contexts[0].length == 0) return;
-        return contexts[0][0];
-    }
-
-    this.pushContext = function () {
-        contexts.unshift([]);
-        return this;
-    }
-
-    this.popContext = function () {
-        contexts.shift();
-        return this;
-    }
-
-    this.lazyPopContext = function () {
-        this.pushAction({
-            ready : true,
-            action : function () {
-                this.popContext();
-            }
-        });
-    }
-
     var offset = 0;
-    var contexts = [[]];
-    var binary = this;
+    var contexts = [];
+    
+    buffer.addListener('push', function () {
+    });
     
     function process () {
         var action = binary.nextAction()
@@ -323,5 +139,23 @@ function Binary(buffer) {
     }
     this.addListener('next', process);
     buffer.addListener('push', process);
+}
+
+// convert byte strings to little endian numbers
+function decodeLE (bytes) {
+    var acc = 0;
+    for (var i = 0; i < bytes.length; i++) {
+        acc += Math.pow(256,i) * bytes[i];
+    }
+    return acc;
+}
+
+// convert byte strings to big endian numbers
+function decodeBE (bytes) {
+    var acc = 0;
+    for (var i = 0; i < bytes.length; i++) {
+        acc += Math.pow(256, bytes.length - i - 1) * bytes[i];
+    }
+    return acc;
 }
 
