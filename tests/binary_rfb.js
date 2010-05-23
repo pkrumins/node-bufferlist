@@ -74,6 +74,9 @@ var RFBServer = net.createServer(function (stream) {
         else if (state = S_EXPECT_FB_UPDATE) {
             // here the fun begins, send the updates from rfb-test-data directory
             //
+
+            var SEND_TYPE = 'one'; // send one rect at a time, use 'all' to send all
+
             fs.readdir(__dirname + '/rfb-test-data', function (err, files) {
                 function rectDim(fileName) {
                     var m = fileName.match(/^\d+-rgba-(\d+)-(\d+)-(\d+)-(\d+).dat$/);
@@ -87,7 +90,9 @@ var RFBServer = net.createServer(function (stream) {
                     var dim = rectDim(fileName);
                     var data = fs.readFileSync(__dirname + '/rfb-test-data/' + fileName, 'binary');
 
-                    /* writing data individually makes node-rfb go nuts
+                    sys.log('sending ' + rgbaFiles[i]);
+
+                    /* writing data individually makes node-rfb go nuts */
                      
                     stream.write('\x00', 'binary'); // serverMsgTypes.fbUpdate
                     stream.write('\x00', 'binary'); // skip 1 byte
@@ -99,7 +104,9 @@ var RFBServer = net.createServer(function (stream) {
                     stream.write(Word32be(0), 'binary'); // encodingType
                     stream.write(data, 'binary');
 
-                    */
+                    
+
+                    /*
 
                     var buf = [];
 
@@ -116,15 +123,68 @@ var RFBServer = net.createServer(function (stream) {
 
                     var toSend = buf.join('');
                     stream.write(toSend, 'binary');
+
+                    */
+                }
+
+                function sendAll(files) {
+
+                    /* writing data individually makes node-rfb go nuts
+                     
+                    stream.write('\x00', 'binary'); // serverMsgTypes.fbUpdate
+                    stream.write('\x00', 'binary'); // skip 1 byte
+                    stream.write(Word16be(files.length), 'binary'); // nRects
+                    for (var i = 0; i<files.length; i++) {
+                        var fileName = files[i];
+                        var dim = rectDim(fileName);
+                        var data = fs.readFileSync(__dirname + '/rfb-test-data/' + fileName, 'binary');
+                        stream.write(Word16be(dim.x), 'binary'); // x
+                        stream.write(Word16be(dim.y), 'binary'); // y
+                        stream.write(Word16be(dim.w), 'binary'); // w
+                        stream.write(Word16be(dim.h), 'binary'); // h
+                        stream.write(Word32be(0), 'binary'); // encodingType
+                        stream.write(data, 'binary');
+                    }
+
+                    */
+
+                    var buf = [];
+
+                    buf.push('\x00'); // serverMsgTypes.fbUpdate
+                    buf.push('\x00'); // skip 1 byte
+                    buf.push(Word16be(files.length)); // nRects
+                    for (var i = 0; i<files.length; i++) {
+                        var fileName = files[i];
+                        var dim = rectDim(fileName);
+                        var data = fs.readFileSync(__dirname + '/rfb-test-data/' + fileName, 'binary');
+                        buf.push(Word16be(dim.x)); // x
+                        buf.push(Word16be(dim.y)); // y
+                        buf.push(Word16be(dim.w)); // w
+                        buf.push(Word16be(dim.h)); // h
+                        buf.push(Word32be(0)); // encodingType
+                        buf.push(data);
+                    }
+
+                    var toSend = buf.join('');
+                    stream.write(toSend, 'binary');
                 }
 
                 var rgbaFiles = files.filter(function (file) {
                     return file.match(/^\d+-rgba-\d+-\d+-\d+-\d+\.dat$/)
                 }).sort();
 
-                for (var i=0; i<1; i++) {
-                    sys.log('sending ' + rgbaFiles[i]);
-                    sendFile(rgbaFiles[i]);
+                if (SEND_TYPE == 'one') {
+                    //for (var i=0; i<rgbaFiles.length; i++) {
+                    for (var i=0; i<1; i++) { // enough to make node-rfb go nuts
+                        sendFile(rgbaFiles[i]);
+                    }
+                }
+                else if (SEND_TYPE == 'all') {
+                    sendAll(rgbaFiles);
+                }
+                else {
+                    sys.log('unknown SEND_TYPE');
+                    process.exit(1);
                 }
             });
         }
