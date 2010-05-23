@@ -45,7 +45,8 @@ function Binary(buffer) {
             action : function () {
                 g.call(this, this.vars);
                 f.call(binary, g);
-            }
+            },
+            type : 'forever'
         };
         this.pushAction(action);
         setTimeout(function () {
@@ -56,7 +57,22 @@ function Binary(buffer) {
     }
 
     this.f = function (x) {
-        sys.log(x);
+        this.pushAction({
+            ready : true,
+            action : function () {
+                sys.log(x);
+            }
+        });
+        return this;
+    }
+
+    this.dc = function() {
+        this.pushAction({
+            ready : true,
+            action : function () {
+                sys.p(contexts);
+            }
+        });
         return this;
     }
     
