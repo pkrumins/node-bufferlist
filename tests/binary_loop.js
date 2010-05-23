@@ -23,7 +23,7 @@ Binary(new BufferList)
     .repeat(3, function (vars, i) {
         this
             .repeat(4, function (vars, j) {
-                trickyList.push([i,j]);
+                trickyList.push([ i + 1, j + 1 ]);
             })
         ;
     })
