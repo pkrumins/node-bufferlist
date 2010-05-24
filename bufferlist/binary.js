@@ -82,6 +82,17 @@ function Binary(buffer) {
         });
     };
     
+    this.flush = function () {
+        this.pushAction({
+            ready : true,
+            action : function () {
+                buffer.advance(this.offset);
+                this.offset = 0;
+            },
+        });
+        return this;
+    };
+    
     this.tap = function (f) {
         this.pushAction({
             ready : true,
