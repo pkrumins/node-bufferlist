@@ -44,23 +44,11 @@ Binary(bList)
         );
         tapped ++;
     })
-    .rewind(4)
-    .getWord32le('bcde')
-    .tap(function (vars) {
-        var bcde = 'bcde'.split('').zip((0).upTo(3)).reduce(function (acc,xx) {
-            return acc + Math.pow(256,xx[1]) * xx[0].charCodeAt(0);
-        }, 0);
-        
-        assert.equal(
-            vars.bcde, bcde,
-            'rewind 2, "bcde" as a 32le should be ' + bcde + ', is ' + vars.bcde
-        )
-        tapped ++;
-    })
+    .end()
 ;
 
 var buf1 = new Buffer(5); buf1.write('abcde');
 var buf2 = new Buffer(3); buf2.write('xyz');
 var buf3 = new Buffer(5); buf3.write('11358');
 bList.push(buf1,buf2,buf3);
-assert.equal(tapped, 2, 'not tapped');
+assert.equal(tapped, 1, 'not tapped');

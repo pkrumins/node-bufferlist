@@ -93,6 +93,16 @@ function Binary(buffer) {
         return this;
     };
     
+    this.skip = function (bytes) {
+        this.pushAction({
+            ready : true,
+            action : function () {
+                this.offset += bytes;
+            },
+        });
+        return this;
+    };
+    
     this.tap = function (f) {
         this.pushAction({
             ready : true,
