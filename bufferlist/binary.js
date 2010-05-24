@@ -20,7 +20,8 @@ function Binary(buffer) {
         return this;
     };
     
-    // signify to the parent that processing should stop
+    // Signify to the parent that processing should stop.
+    // Note: cannot exit from inside a loop unless processing finishes.
     this.exit = function () {
         this.pushAction({
             ready : true,
@@ -56,6 +57,7 @@ function Binary(buffer) {
                 child.offset = binary.offset;
                 
                 child.addListener('end', function () {
+                    binary.offset = child.offset;
                     buffer.addListener('push', update);
                     update();
                 });
@@ -146,22 +148,33 @@ function Binary(buffer) {
     };
     
     this.repeat = function (n, f) {
+        var nf = typeof(n) == 'string'
+            ? function (vars) { return vars[n] }
+            : function (vars) { return n }
+        ;
         this.pushAction({
             ready : true,
             context : true,
             action : function () {
-                this.actions = [{ ready : function () { return false } }];
-                for (var i = 0; i < n; i++) {
+                var nn = nf.call(this, this.vars);
+                for (var i = 0; i < nn; i++) {
                     f.call(this, this.vars, i);
                 }
-                this.actions.shift();
-                this.end();
             },
         });
         return this;
     };
     
     this.forever = function (f) {
+        var action = {
+            ready : true,
+            context : true,
+            action : function () {
+                f.call(this, this.vars);
+                this.pushAction(action);
+            },
+        };
+        this.pushAction(action);
         return this;
     };
     

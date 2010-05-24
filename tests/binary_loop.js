@@ -55,21 +55,6 @@ Binary(new BufferList)
 
 assert.equal(reps, 5000, 'reps != 5000, reps == ' + reps + ' in outer repeat check');
 
-var c = 0;
-Binary(new BufferList)
-    .forever(function (vars) {
-        c ++;
-        if (c == 10000) this.exit();
-    })
-    .end()
-;
-
-setTimeout(function () {
-    assert.equal(
-        c, 10000, 'c != 10000, c == ' + c + ' in terminated forever check'
-    );
-}, 1000);
-
 var bufferList = new BufferList;
 var loops = 0;
 Binary(bufferList)
@@ -109,13 +94,13 @@ Binary(bufferList)
 
 for (var n = 0; n < 20; n++) {
     var countBuf = new Buffer(2);
-    countBuf[0] = Math.floor(100 / 256);
+    countBuf[0] = 100 >> 8;
     countBuf[1] = 100 % 256;
     bufferList.push(countBuf);
     
     for (var i = 0; i < 100; i++) {
         var buf = new Buffer(1000 + 2);
-        buf[0] = Math.floor(1000 / 256);
+        buf[0] = 1000 >> 8;
         buf[1] = 1000 % 256;
         for (var j = 0; j < 1000; j++) {
             buf[j + 2] = j;
@@ -127,4 +112,3 @@ for (var n = 0; n < 20; n++) {
 setTimeout(function () {
     assert.equal(loops, 20, 'loops != 20, loops == ' + loops);
 }, 1000);
-
