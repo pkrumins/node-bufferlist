@@ -11,17 +11,29 @@ function Binary(buffer) {
     
     this.vars = {};
     var offset = 0;
+    var actions = [];
     
-    // empty action at the start is triggered by .end() so that all actions can
-    // load before running the chain
-    var actions = [ {
-        ready : function () { return false },
-        action : function () {} }
-    ];
-    
+    // an explicit end loads all the actions before any evaluation happens
     this.end = function () {
-        actions[0].ready = function () { return true };
+        buffer.addListener('push', update);
         update();
+        return this;
+    };
+    
+    // signify to the parent that processing should stop
+    this.exit = function () {
+        this.pushAction({
+            ready : true,
+            action : function () {
+                buffer.listeners('push').splice(0);
+                actions = [];
+                this.parent
+                    ? this.parent.emit('exit')
+                    : this.emit('exit')
+                ;
+            },
+        });
+        return this.end();
     };
     
     function update () {
@@ -37,15 +49,14 @@ function Binary(buffer) {
             
             var child = new Binary(buffer);
             child.vars = binary.vars;
+            child.parent = binary;
             action.action.call(child, child.vars);
             
             binary.emit('update');
-            setTimeout(update, 0);
+            //setTimeout(update, 0);
+            update();
         }
     }
-    
-    this.addListener('end', update);
-    buffer.addListener('push', update);
     
     this.pushAction = function (action) {
         if (!action) throw "Action not specified";
@@ -54,7 +65,7 @@ function Binary(buffer) {
             'boolean' : function () { return action.ready },
         }[typeof(action.ready)];
         if (!ready) throw "Unknown action.ready type";
-        actions.push({ 'action' : action, 'ready' : ready });
+        actions.push({ 'action' : action.action, 'ready' : ready });
     };
     
     this.tap = function (f) {
