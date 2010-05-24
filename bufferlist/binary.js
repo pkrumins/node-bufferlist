@@ -6,10 +6,97 @@ Binary.prototype = new EventEmitter;
 exports.Binary = Binary;
 function Binary(buffer) {
     if (!(this instanceof Binary)) return new Binary(buffer);
+
+    var binary = this;
+    
     this.vars = {};
+    var offset = 0;
+    
+    // empty action at the start is triggered by .end() so that all actions can
+    // load before running the chain
+    var actions = [ {
+        ready : function () { return false },
+        action : function () {} }
+    ];
+    
+    this.end = function () {
+        actions[0].ready = function () { return true };
+        update();
+    };
+    
+    function update () {
+        var action = actions[0];
+        if (!action) {
+            buffer.removeListener('push', update);
+            binary.emit('end');
+            return;
+        }
+        
+        if (action.ready.call(binary, binary.vars)) {
+            actions.shift();
+            
+            var child = new Binary(buffer);
+            child.vars = binary.vars;
+            action.action.call(child, child.vars);
+            
+            binary.emit('update');
+            setTimeout(update, 0);
+        }
+    }
+    
+    this.addListener('end', update);
+    buffer.addListener('push', update);
+    
+    this.pushAction = function (action) {
+        if (!action) throw "Action not specified";
+        var ready = {
+            'function' : action.ready,
+            'boolean' : function () { return action.ready },
+        }[typeof(action.ready)];
+        if (!ready) throw "Unknown action.ready type";
+        actions.push({ 'action' : action, 'ready' : ready });
+    };
     
     this.tap = function (f) {
+        this.pushAction({
+            ready : true,
+            action : function () {
+                f.call(this, this.vars);
+            },
+        });
         return this;
+    };
+    
+    this.when = function (v1, v2, f) {
+        var f1 = typeof(v1) == 'string'
+            ? function (vars) { return vars[v1] }
+            : function (vars) { return v1 }
+        ;
+        var f2 = typeof(v2) == 'string'
+            ? function (vars) { return vars[v2] }
+            : function (vars) { return v2 }
+        ;
+        return this.tap(function () {
+            if (f1(this.vars) == f2(this.vars)) {
+                f.call(this, this.vars);
+            }
+        });
+    };
+    
+    this.unless = function (v1, v2, f) {
+        var f1 = typeof(v1) == 'string'
+            ? function (vars) { return vars[v1] }
+            : function (vars) { return v1 }
+        ;
+        var f2 = typeof(v2) == 'string'
+            ? function (vars) { return vars[v2] }
+            : function (vars) { return v2 }
+        ;
+        return this.tap(function () {
+            if (f1(this.vars) != f2(this.vars)) {
+                f.call(this, this.vars);
+            }
+        });
     };
     
     this.get = function (opts) {
@@ -114,31 +201,6 @@ function Binary(buffer) {
         });
         return this;
     };
-    
-    var offset = 0;
-    var contexts = [];
-    
-    buffer.addListener('push', function () {
-    });
-    
-    function process () {
-        var action = binary.nextAction()
-        if (!action) return;
-        
-        var ready = {
-            'function' : action.ready,
-            'boolean' : function () { return action.ready },
-        }[typeof(action.ready)];
-        if (!ready) throw "Unknown action.ready type";
-        
-        if (ready()) {
-            binary.popAction();
-            action.action.call(binary, action.action, contexts[0]);
-            binary.emit('next');
-        }
-    }
-    this.addListener('next', process);
-    buffer.addListener('push', process);
 }
 
 // convert byte strings to little endian numbers
