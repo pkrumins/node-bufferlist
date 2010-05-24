@@ -47,14 +47,24 @@ function Binary(buffer) {
         if (action.ready.call(binary, binary.vars)) {
             actions.shift();
             
-            var child = new Binary(buffer);
-            child.vars = binary.vars;
-            child.parent = binary;
-            action.action.call(child, child.vars);
-            
-            binary.emit('update');
-            //setTimeout(update, 0);
-            update();
+            if (action.context) {
+                buffer.removeListener('push', update);
+                
+                var child = new Binary(buffer);
+                child.vars = binary.vars;
+                child.parent = binary;
+                
+                child.addListener('end', function () {
+                    buffer.addListener('push', update);
+                    update();
+                });
+                
+                action.action.call(child, child.vars);
+                child.end();
+            }
+            else {
+                action.action.call(binary, binary.vars);
+            }
         }
     }
     
@@ -65,12 +75,17 @@ function Binary(buffer) {
             'boolean' : function () { return action.ready },
         }[typeof(action.ready)];
         if (!ready) throw "Unknown action.ready type";
-        actions.push({ 'action' : action.action, 'ready' : ready });
+        actions.push({
+            'action' : action.action,
+            'ready' : ready,
+            'context' : action.context || false,
+        });
     };
     
     this.tap = function (f) {
         this.pushAction({
             ready : true,
+            context : true,
             action : function () {
                 f.call(this, this.vars);
             },
