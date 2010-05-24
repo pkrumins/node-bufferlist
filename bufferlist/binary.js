@@ -10,7 +10,8 @@ function Binary(buffer) {
     var binary = this;
     
     this.vars = {};
-    var offset = 0;
+    this.offset = 0;
+    
     var actions = [];
     
     // an explicit end loads all the actions before any evaluation happens
@@ -41,29 +42,28 @@ function Binary(buffer) {
         if (!action) {
             buffer.removeListener('push', update);
             binary.emit('end');
-            return;
         }
-        
-        if (action.ready.call(binary, binary.vars)) {
+        else if (action.ready.call(binary, binary.vars)) {
             actions.shift();
             
-            if (action.context) {
-                buffer.removeListener('push', update);
-                
+            if (action.context == false) {
+                action.action.call(binary, binary.vars);
+                update();
+            }
+            else {
                 var child = new Binary(buffer);
                 child.vars = binary.vars;
                 child.parent = binary;
+                child.offset = binary.offset;
                 
                 child.addListener('end', function () {
                     buffer.addListener('push', update);
                     update();
                 });
+                buffer.removeListener('push', update);
                 
                 action.action.call(child, child.vars);
                 child.end();
-            }
-            else {
-                action.action.call(binary, binary.vars);
             }
         }
     }
@@ -134,16 +134,16 @@ function Binary(buffer) {
         
         this.pushAction({
             ready : function () {
-                return buffer.length - offset >= opts.bytes;
+                return buffer.length - this.offset >= opts.bytes;
             },
             action : function () {
-                var data = buffer.join(offset, offset + opts.bytes);
+                var data = buffer.join(this.offset, this.offset + opts.bytes);
                 var decoded = opts.endian && opts.endian == 'little'
                     ? decodeLE(data)
                     : decodeBE(data)
                 ;
                 
-                offset += opts.bytes;
+                this.offset += opts.bytes;
                 if (into_t == 'function') {
                     opts.into.call(this, decoded);
                 }
@@ -210,12 +210,12 @@ function Binary(buffer) {
         this.pushAction({
             ready : function () {
                 var s = size();
-                return s && buffer.length - offset >= s;
+                return s && buffer.length - this.offset >= s;
             },
             action : function () {
                 var s = size();
-                var data = buffer.join(offset, offset + s);
-                offset += s;
+                var data = buffer.join(this.offset, this.offset + s);
+                this.offset += s;
                 
                 if (into_t == 'function') {
                     opts.into.call(this,data);
