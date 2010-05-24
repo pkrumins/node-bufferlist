@@ -50,6 +50,7 @@ Binary(new BufferList)
             );
         }
     })
+    .end()
 ;
 
 assert.equal(reps, 5000, 'reps != 5000, reps == ' + reps + ' in outer repeat check');
@@ -60,11 +61,12 @@ Binary(new BufferList)
         c ++;
         if (c == 10000) this.exit();
     })
+    .end()
 ;
 
 setTimeout(function () {
     assert.equal(
-        c, 10000, 'c != 100, c == ' + c + ' in terminated forever check'
+        c, 10000, 'c != 10000, c == ' + c + ' in terminated forever check'
     );
 }, 1000);
 
@@ -102,6 +104,7 @@ Binary(bufferList)
         loops ++;
         if (loops == 20) this.exit();
     })
+    .end()
 ;
 
 for (var n = 0; n < 20; n++) {

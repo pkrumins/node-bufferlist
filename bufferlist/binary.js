@@ -11,8 +11,7 @@ function Binary(buffer) {
     
     this.vars = {};
     this.offset = 0;
-    
-    var actions = [];
+    this.actions = [];
     
     // an explicit end loads all the actions before any evaluation happens
     this.end = function () {
@@ -27,7 +26,7 @@ function Binary(buffer) {
             ready : true,
             action : function () {
                 buffer.listeners('push').splice(0);
-                actions = [];
+                this.actions = [];
                 this.parent
                     ? this.parent.emit('exit')
                     : this.emit('exit')
@@ -38,13 +37,13 @@ function Binary(buffer) {
     };
     
     function update () {
-        var action = actions[0];
+        var action = binary.actions[0];
         if (!action) {
             buffer.removeListener('push', update);
             binary.emit('end');
         }
         else if (action.ready.call(binary, binary.vars)) {
-            actions.shift();
+            binary.actions.shift();
             
             if (action.context == false) {
                 action.action.call(binary, binary.vars);
@@ -75,7 +74,7 @@ function Binary(buffer) {
             'boolean' : function () { return action.ready },
         }[typeof(action.ready)];
         if (!ready) throw "Unknown action.ready type";
-        actions.push({
+        this.actions.push({
             'action' : action.action,
             'ready' : ready,
             'context' : action.context || false,
@@ -144,6 +143,26 @@ function Binary(buffer) {
                 f.call(this, this.vars);
             }
         });
+    };
+    
+    this.repeat = function (n, f) {
+        this.pushAction({
+            ready : true,
+            context : true,
+            action : function () {
+                this.actions = [{ ready : function () { return false } }];
+                for (var i = 0; i < n; i++) {
+                    f.call(this, this.vars, i);
+                }
+                this.actions.shift();
+                this.end();
+            },
+        });
+        return this;
+    };
+    
+    this.forever = function (f) {
+        return this;
     };
     
     this.get = function (opts) {
