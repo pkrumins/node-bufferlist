@@ -21,7 +21,6 @@ function Binary(buffer) {
     };
     
     // Signify to the parent that processing should stop.
-    // Note: cannot exit from inside a loop unless processing finishes.
     this.exit = function () {
         this.pushAction({
             ready : true,
