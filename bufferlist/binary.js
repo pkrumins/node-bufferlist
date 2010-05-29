@@ -177,12 +177,24 @@ function Binary(buffer) {
         return this;
     };
     
+    // assign immediately
+    function assign (key, value) {
+        var keys = key instanceof Array ? key : [key];
+        // assign into key hierarchy with the into array
+        var obj = binary.vars;
+        keys.slice(0,-1).forEach(function (k) {
+            if (!obj[k]) obj[k] = {};
+            obj = obj[k];
+        });
+        obj[ keys.slice(-1)[0] ] = value;
+    }
+    
     this.get = function (opts) {
-        var into_t = typeof(opts.into);
-        var into_types = 'function string'.split(' ');
-        if (into_types.indexOf(into_t) < 0) {
-            throw TypeError('Unsupported into type: ' + into_t);
-        }
+        // flatten :into so .getX(['foo','bar','baz'])
+        // and .getX('foo','bar','baz') both work
+        var into = [].reduce.call(opts.into, function (acc,x) {
+            return acc.concat(x);
+        }, []);
         
         this.pushAction({
             ready : function () {
@@ -190,91 +202,86 @@ function Binary(buffer) {
             },
             action : function () {
                 var data = buffer.join(this.offset, this.offset + opts.bytes);
-                var decoded = opts.endian && opts.endian == 'little'
+                this.offset += opts.bytes;
+                assign(
+                    into,
+                    opts.endian && opts.endian == 'little'
                     ? decodeLE(data)
                     : decodeBE(data)
-                ;
+                );
                 
-                this.offset += opts.bytes;
-                if (into_t == 'function') {
-                    opts.into.call(this, decoded);
-                }
-                else {
-                    this.vars[opts.into] = decoded;
-                }
             },
         });
         return this;
     };
     
-    this.getWord8 = function (into) {
-        return this.get({ into : into, bytes : 1 });
+    this.getWord8 = function () {
+        return this.get({ into : arguments, bytes : 1 });
     };
     
-    this.getWord16be = function (into) {
-        return this.get({ into : into, bytes : 2, endian : 'big' });
+    this.getWord16be = function () {
+        return this.get({ into : arguments, bytes : 2, endian : 'big' });
     };
     
-    this.getWord16le = function (into) {
-        return this.get({ into : into, bytes : 2, endian : 'little' });
+    this.getWord16le = function () {
+        return this.get({ into : arguments, bytes : 2, endian : 'little' });
     };
     
-    this.getWord32be = function (into) {
-        return this.get({ into : into, bytes : 4, endian : 'big' });
+    this.getWord32be = function () {
+        return this.get({ into : arguments, bytes : 4, endian : 'big' });
     };
     
-    this.getWord32le = function (into) {
-        return this.get({ into : into, bytes : 4, endian : 'little' });
+    this.getWord32le = function () {
+        return this.get({ into : arguments, bytes : 4, endian : 'little' });
     };
     
-    this.getWord64be = function (into) {
-        return this.get({ into : into, bytes : 8, endian : 'big' });
+    this.getWord64be = function (arguments) {
+        return this.get({ into : arguments, bytes : 8, endian : 'big' });
     };
     
-    this.getWord64le = function (into) {
-        return this.get({ into : into, bytes : 8, endian : 'little' });
+    this.getWord64le = function () {
+        return this.get({ into : arguments, bytes : 8, endian : 'little' });
     };
     
-    this.getBuffer = function (into, length) {
-        return this.gets({ into : into, bytes : 1, length : length });
-    };
-    
-    this.gets = function (opts) {
-        if (typeof(opts.length) == 'string') {
-            var s = opts.length;
-            opts.length = function (vars) { return vars[s] };
-        }
-        else if (typeof(opts.length) == 'number') {
-            var s = opts.length;
-            opts.length = function (vars) { return s };
-        }
+    this.getBuffer = function () {
+        var args = [].concat.apply([],arguments);
+        // flatten :into so .getBuffer(['foo','bar','baz'],10)
+        // and .getBuffer('foo','bar','baz',10) both work
+        var into = args.slice(0,-1).reduce(function (acc,x) {
+            return acc.concat(x);
+        });
+        var length = args.slice(-1)[0];
+        var lengthF;
         
-        function size () {
-            return opts.length.call(binary,binary.vars) * opts.bytes;
+        if (typeof(length) == 'string') {
+            var s = length;
+            lengthF = function (vars) { return vars[s] };
         }
-        
-        var into_t = typeof(opts.into);
-        var into_types = 'function string'.split(' ');
-        if (into_types.indexOf(into_t) < 0) {
-            throw TypeError('Unsupported into type: ' + into_t);
+        else if (typeof(length) == 'number') {
+            var s = length;
+            lengthF = function (vars) { return s };
+        }
+        else if (length instanceof Function) {
+            lengthF = length;
+        }
+        else {
+            throw TypeError(
+                'Last argument to getBuffer (length) must be a string, number, '
+                + 'or a function, not a "' + typeof(length) + '".'
+                + 'Value supplied: ' + sys.inspect(length)
+            );
         }
         
         this.pushAction({
             ready : function () {
-                var s = size();
+                var s = lengthF.call(this,this.vars);
                 return s && buffer.length - this.offset >= s;
             },
             action : function () {
-                var s = size();
+                var s = lengthF.call(this,this.vars);
                 var data = buffer.join(this.offset, this.offset + s);
                 this.offset += s;
-                
-                if (into_t == 'function') {
-                    opts.into.call(this,data);
-                }
-                else if (into_t == 'string') {
-                    this.vars[opts.into] = data;
-                }
+                assign(into,data);
             },
         });
         return this;
