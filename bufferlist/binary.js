@@ -178,10 +178,18 @@ function Binary(buffer) {
     };
     
     // assign immediately
-    function assign (key, value) {
-        var keys = key instanceof Array ? key : [key];
+    function assign () {
+        var args = [].concat.apply([],arguments);
+        
+        // flatten :into so .getX(['foo','bar','baz'])
+        // and .getX('foo','bar','baz') both work
+        var keys = args.slice(0,-1).reduce(function (acc,x) {
+            return acc.concat(x);
+        }, []);
+        var value = args.slice(-1)[0];
+        
         // assign into key hierarchy with the into array
-        var obj = binary.vars;
+        var obj = this.vars;
         keys.slice(0,-1).forEach(function (k) {
             if (!obj[k]) obj[k] = {};
             obj = obj[k];
@@ -189,9 +197,38 @@ function Binary(buffer) {
         obj[ keys.slice(-1)[0] ] = value;
     }
     
-    this.get = function (opts) {
-        // flatten :into so .getX(['foo','bar','baz'])
-        // and .getX('foo','bar','baz') both work
+    // Assign into a variable. All but the last argument make up the key, which
+    // may describe a deeply nested address. If the last argument is a:
+    // * function - assign the variables from the inner chain
+    // * string - assign from the key name
+    // * number - assign from this value
+    this.into = function () {
+        var args = [].concat.apply([],arguments);
+        var keys = args.slice(0,-1);
+        var fv = args.slice(-1)[0];
+        
+        return this.tap(function (vars) {
+            if (fv instanceof Function) {
+                fv.call(this, this.vars);
+                assign.call(binary, keys, this.vars);
+            }
+            else if (typeof(fv) == 'string') {
+                assign.call(binary, keys, this.vars[fv]);
+            }
+            else if (typeof(fv) == 'number') {
+                assign.call(binary, keys, fv);
+            }
+            else {
+                throw TypeError(
+                    'Last argument to .into must be a string, number, '
+                    + 'or a function, not a "' + typeof(fv) + '".'
+                    + 'Value supplied: ' + sys.inspect(fv)
+                );
+            }
+        });
+    };
+    
+    function get (opts) {
         var into = [].reduce.call(opts.into, function (acc,x) {
             return acc.concat(x);
         }, []);
@@ -203,7 +240,8 @@ function Binary(buffer) {
             action : function () {
                 var data = buffer.join(this.offset, this.offset + opts.bytes);
                 this.offset += opts.bytes;
-                assign(
+                assign.call(
+                    this,
                     into,
                     opts.endian && opts.endian == 'little'
                     ? decodeLE(data)
@@ -216,31 +254,43 @@ function Binary(buffer) {
     };
     
     this.getWord8 = function () {
-        return this.get({ into : arguments, bytes : 1 });
+        return get.call(
+            this, { into : arguments, bytes : 1 }
+        );
     };
     
     this.getWord16be = function () {
-        return this.get({ into : arguments, bytes : 2, endian : 'big' });
+        return get.call(
+            this, { into : arguments, bytes : 2, endian : 'big' }
+        );
     };
     
     this.getWord16le = function () {
-        return this.get({ into : arguments, bytes : 2, endian : 'little' });
+        return get.call(
+            this, { into : arguments, bytes : 2, endian : 'little' }
+        );
     };
     
     this.getWord32be = function () {
-        return this.get({ into : arguments, bytes : 4, endian : 'big' });
+        return get.call(
+            this, { into : arguments, bytes : 4, endian : 'big' }
+        );
     };
     
     this.getWord32le = function () {
-        return this.get({ into : arguments, bytes : 4, endian : 'little' });
+        return get.call(
+            this, { into : arguments, bytes : 4, endian : 'little' }
+        );
     };
     
     this.getWord64be = function (arguments) {
-        return this.get({ into : arguments, bytes : 8, endian : 'big' });
+        return get.call(
+            this, { into : arguments, bytes : 8, endian : 'big'}
+        );
     };
     
     this.getWord64le = function () {
-        return this.get({ into : arguments, bytes : 8, endian : 'little' });
+        return get({ into : arguments, bytes : 8, endian : 'little' });
     };
     
     this.getBuffer = function () {
@@ -281,7 +331,7 @@ function Binary(buffer) {
                 var s = lengthF.call(this,this.vars);
                 var data = buffer.join(this.offset, this.offset + s);
                 this.offset += s;
-                assign(into,data);
+                assign.call(this,into,data);
             },
         });
         return this;
