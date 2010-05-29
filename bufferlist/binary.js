@@ -116,15 +116,15 @@ function Binary(buffer) {
     
     this.when = function (v1, v2, f) {
         var f1 = typeof(v1) == 'string'
-            ? function (vars) { return vars[v1] }
+            ? function (vars) { return lookup.call(this,v1) }
             : function (vars) { return v1 }
         ;
         var f2 = typeof(v2) == 'string'
-            ? function (vars) { return vars[v2] }
+            ? function (vars) { return lookup.call(this,v2) }
             : function (vars) { return v2 }
         ;
         return this.tap(function () {
-            if (f1(this.vars) == f2(this.vars)) {
+            if (f1.call(this,this.vars) == f2.call(this,this.vars)) {
                 f.call(this, this.vars);
             }
         });
@@ -132,15 +132,15 @@ function Binary(buffer) {
     
     this.unless = function (v1, v2, f) {
         var f1 = typeof(v1) == 'string'
-            ? function (vars) { return vars[v1] }
+            ? function (vars) { return lookup.call(this,v1) }
             : function (vars) { return v1 }
         ;
         var f2 = typeof(v2) == 'string'
-            ? function (vars) { return vars[v2] }
+            ? function (vars) { return lookup.call(this,v2) }
             : function (vars) { return v2 }
         ;
         return this.tap(function () {
-            if (f1(this.vars) != f2(this.vars)) {
+            if (f1.call(this,this.vars) != f2.call(this,this.vars)) {
                 f.call(this, this.vars);
             }
         });
@@ -148,7 +148,7 @@ function Binary(buffer) {
     
     this.repeat = function (n, f) {
         var nf = typeof(n) == 'string'
-            ? function (vars) { return vars[n] }
+            ? function (vars) { return lookup.call(this,n) }
             : function (vars) { return n }
         ;
         this.pushAction({
@@ -200,6 +200,21 @@ function Binary(buffer) {
         obj[ keys.slice(-1)[0] ] = value;
     }
     
+    function lookup() {
+        var keys = [].reduce.call(arguments, function f (acc,x) {
+            return acc.concat(
+                x instanceof Array ? x.reduce(f) : x.split('.')
+            );
+        }, []);
+        // assign into key hierarchy with the into array
+        var obj = this.vars;
+        keys.slice(0,-1).forEach(function (k) {
+            if (!obj[k]) obj[k] = {};
+            obj = obj[k];
+        });
+        return obj[ keys.slice(-1)[0] ];
+    }
+    
     // Assign into a variable. All but the last argument make up the key, which
     // may describe a deeply nested address. If the last argument is a:
     // * function - assign the variables from the inner chain
@@ -216,7 +231,7 @@ function Binary(buffer) {
                 assign.call(binary, keys, this.vars);
             }
             else if (typeof(fv) == 'string') {
-                assign.call(binary, keys, this.vars[fv]);
+                assign.call(binary, keys, lookup.call(this,fv));
             }
             else if (typeof(fv) == 'number') {
                 assign.call(binary, keys, fv);
@@ -310,7 +325,7 @@ function Binary(buffer) {
         
         if (typeof(length) == 'string') {
             var s = length;
-            lengthF = function (vars) { return vars[s] };
+            lengthF = function (vars) { return lookup.call(this,s) };
         }
         else if (typeof(length) == 'number') {
             var s = length;

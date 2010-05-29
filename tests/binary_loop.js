@@ -60,14 +60,15 @@ var loops = 0;
 Binary(bufferList)
     .forever(function () {
         this
-            .getWord16be('count')
+            .getWord16be('moo','count')
             .tap(function (vars) {
                 assert.equal(
-                    vars.count, 100, 'count != 100, count == ' + vars.count
+                    vars.moo.count, 100,
+                    'count != 100, count == ' + vars.moo.count
                 );
                 vars.reps = 0;
             })
-            .repeat('count', function (vars, i) {
+            .repeat('moo.count', function (vars, i) {
                 this
                     .getWord16be('size')
                     .tap(function (vars) {
