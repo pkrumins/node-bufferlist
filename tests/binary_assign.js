@@ -29,7 +29,7 @@ Binary(bList)
         );
         tapped ++;
     })
-    .into('what','the','fuck',function () {
+    .into(['what.the','fuck'],function () {
         this
             .getWord8('w')
             .getWord8('t')

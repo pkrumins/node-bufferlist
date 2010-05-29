@@ -183,8 +183,11 @@ function Binary(buffer) {
         
         // flatten :into so .getX(['foo','bar','baz'])
         // and .getX('foo','bar','baz') both work
-        var keys = args.slice(0,-1).reduce(function (acc,x) {
-            return acc.concat(x);
+        // also .getX('foo.bar.baz') does the same thing
+        var keys = args.slice(0,-1).reduce(function f (acc,x) {
+            return acc.concat(
+                x instanceof Array ? x.reduce(f) : x.split('.')
+            );
         }, []);
         var value = args.slice(-1)[0];
         
@@ -297,9 +300,11 @@ function Binary(buffer) {
         var args = [].concat.apply([],arguments);
         // flatten :into so .getBuffer(['foo','bar','baz'],10)
         // and .getBuffer('foo','bar','baz',10) both work
-        var into = args.slice(0,-1).reduce(function (acc,x) {
-            return acc.concat(x);
-        });
+        var into = args.slice(0,-1).reduce(function f (acc,x) {
+            return acc.concat(
+                x instanceof Array ? x.reduce(f) : x.split('.')
+            );
+        }, []);
         var length = args.slice(-1)[0];
         var lengthF;
         
