@@ -376,3 +376,21 @@ function decodeBE (bytes) {
     return acc;
 }
 
+// convert byte strings to signed big endian numbers
+function decodeBEs (bytes) {
+    var val = decodeBE(bytes);
+    if ((bytes[0]&0x80) == 0x80) {
+        val -= (1<<(8*bytes.length))
+    }
+    return val;
+}
+
+// convert byte strings to signed little endian numbers
+function decodeLEs (bytes) {
+    var val = decodeLE(bytes);
+    if ((bytes[bytes.length-1]&0x80) == 0x80) {
+        val -= (1<<(8*bytes.length))
+    }
+    return val;
+}
+
